@@ -1,6 +1,11 @@
 use std::future::Future;
 
+pub mod azk;
+pub mod model;
 pub mod nodes;
+#[cfg(test)]
+mod testing;
+pub mod utils;
 
 /// A processing step in a walk.
 ///
