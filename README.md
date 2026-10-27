@@ -12,10 +12,12 @@ A program is a set of small **nodes** joined into a **walk**. Each node does one
 Requires Rust 1.85 or later.
 
 ```bash
-cargo run
+cargo run -- playlist.m3u
 ```
 
-The program asks for a starting number, counts up once a second, and stops at random. Invalid input sends the walk back to the start. See [`specs/counter.md`](specs/counter.md) for the behaviour it implements.
+This branch builds `m3ud`: it downloads the audio files listed in an M3U playlist, resolving khinsider pages to direct download links after asking for confirmation. See [`specs/m3ud.md`](specs/m3ud.md) for the behaviour it implements.
+
+The reference walk used in the concepts below, `counter`, lives in [`src/walks/counter.rs`](src/walks/counter.rs) and is specified in [`specs/counter.md`](specs/counter.md).
 
 ## Concepts
 
@@ -69,7 +71,7 @@ async fn step(&self, id: Id, state: &mut State) -> Result<Transition<Id>, start:
 }
 ```
 
-Then `walk.run(Id::Start, &mut state).await` steps until a node halts. The complete walk, including a test of its wiring, is in [`src/walks/counter.rs`](src/walks/counter.rs), and [`src/main.rs`](src/main.rs) runs it.
+Then `walk.run(Id::Start, &mut state).await` steps until a node halts. The complete walk, including a test of its wiring, is in [`src/walks/counter.rs`](src/walks/counter.rs).
 
 > [!TIP]
 > Don't add a `_ =>` arm when matching outcomes. Leaving it out is what makes a newly added outcome fail the build until it is wired.
