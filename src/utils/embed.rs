@@ -9,7 +9,7 @@ struct Response {
 }
 
 fn base_url() -> String {
-    let host = std::env::var("OLLAMA_HOST").unwrap_or_else(|_| "localhost:11434".into());
+    let host = std::env::var("EMBEDDING_HOST").unwrap_or_else(|_| "localhost:11434".into());
     if host.contains("://") {
         host
     } else {
@@ -20,7 +20,7 @@ fn base_url() -> String {
 /// Embeds `text`, or `None` if the host is unreachable or answers badly.
 #[must_use]
 pub fn embed(text: &str) -> Option<Vec<f32>> {
-    let model = std::env::var("AZK_EMBED_MODEL").unwrap_or_else(|_| "nomic-embed-text".into());
+    let model = std::env::var("EMBEDDING_MODEL").unwrap_or_else(|_| "nomic-embed-text".into());
     let agent: ureq::Agent = ureq::Agent::config_builder()
         .timeout_global(Some(Duration::from_secs(30)))
         .timeout_connect(Some(Duration::from_secs(2)))
