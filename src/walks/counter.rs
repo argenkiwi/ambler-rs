@@ -1,14 +1,17 @@
 //! Asks for a number, counts up from it once a second, and stops at random.
 //!
-//! Run with `cargo run --example counter`. See `specs/counter.md`.
+//! See `specs/counter.md`.
 
-use ambler::nodes::HasCount;
-use ambler::nodes::count::{self, Count};
-use ambler::nodes::start::{self, Start};
-use ambler::nodes::stop::{self, Stop};
-use ambler::{Node, Transition, Walk};
+use crate::nodes::HasCount;
+use crate::nodes::count::{self, Count};
+use crate::nodes::start::{self, Start};
+use crate::nodes::stop::{self, Stop};
+use crate::{Node, Transition, Walk};
 
-#[derive(Clone, Debug)]
+/// What can stop the walk early. Only the start node can fail.
+pub type Error = start::Error;
+
+#[derive(Clone, Debug, Default)]
 struct State {
     count: i32,
 }
@@ -37,6 +40,7 @@ struct Counter<A = start::SystemUtils, B = count::SystemUtils, C = stop::SystemU
 }
 
 impl Counter {
+    /// Production wiring: every node uses its `SystemUtils`.
     fn new() -> Self {
         Self::default()
     }
@@ -50,9 +54,9 @@ where
 {
     type Id = Id;
     type State = State;
-    type Error = start::Error;
+    type Error = Error;
 
-    async fn step(&self, id: Id, state: &mut State) -> Result<Transition<Id>, start::Error> {
+    async fn step(&self, id: Id, state: &mut State) -> Result<Transition<Id>, Error> {
         Ok(match id {
             Id::Start => match self.start.run(state).await? {
                 start::Outcome::Success => Transition::Next(Id::Count),
@@ -73,9 +77,13 @@ where
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), start::Error> {
-    Counter::new().run(Id::Start, &mut State { count: 0 }).await
+/// Runs the counter walk starting at 0.
+///
+/// # Errors
+///
+/// Returns [`Error`] if reading user input fails.
+pub async fn run() -> Result<(), Error> {
+    Counter::new().run(Id::Start, &mut State::default()).await
 }
 
 #[cfg(test)]

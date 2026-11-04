@@ -1,5 +1,6 @@
 use crate::Node;
 use crate::nodes::HasCount;
+use crate::utils::terminal;
 use std::io;
 
 /// Where [`Start`] leaves the walk.
@@ -28,14 +29,7 @@ pub struct SystemUtils;
 
 impl Utils for SystemUtils {
     fn read_line(&self, message: &str) -> io::Result<Option<String>> {
-        use std::io::Write;
-        print!("{message}");
-        io::stdout().flush()?;
-        let mut input = String::new();
-        Ok(match io::stdin().read_line(&mut input)? {
-            0 => None,
-            _ => Some(input.trim_end_matches(['\r', '\n']).to_string()),
-        })
+        terminal::prompt(message)
     }
 
     fn print(&self, message: &str) {
