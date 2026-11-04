@@ -12,15 +12,15 @@ use crate::{Node, Transition, Walk, impl_has};
 use std::process::ExitCode;
 
 #[derive(Clone, Debug, Default)]
-pub struct State {
-    pub args: Vec<String>,
-    pub usage: Option<String>,
-    pub query: Option<String>,
-    pub limit: Option<usize>,
-    pub text_to_embed: Option<String>,
-    pub embedding: Option<Vec<f32>>,
-    pub keyword_results: Vec<Hit>,
-    pub semantic_results: Vec<Hit>,
+struct State {
+    args: Vec<String>,
+    usage: Option<String>,
+    query: Option<String>,
+    limit: Option<usize>,
+    text_to_embed: Option<String>,
+    embedding: Option<Vec<f32>>,
+    keyword_results: Vec<Hit>,
+    semantic_results: Vec<Hit>,
 }
 
 impl_has!(State: args, usage, embedding);
@@ -53,7 +53,7 @@ impl HasSearch for State {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Id {
+enum Id {
     Input,
     Keyword,
     Embed,
@@ -62,7 +62,7 @@ pub enum Id {
     Usage,
 }
 
-pub struct Search<U = System> {
+struct Search<U = System> {
     input: Input,
     keyword: Keyword<U>,
     embed: Embed<U>,
@@ -73,7 +73,7 @@ pub struct Search<U = System> {
 
 impl Search {
     #[must_use]
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self::with_utils(System)
     }
 }
@@ -86,7 +86,7 @@ impl Default for Search {
 
 impl<U: Clone> Search<U> {
     #[must_use]
-    pub fn with_utils(utils: U) -> Self {
+    fn with_utils(utils: U) -> Self {
         Self {
             input: Input,
             keyword: Keyword::with_utils(utils.clone()),

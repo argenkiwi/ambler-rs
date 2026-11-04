@@ -14,24 +14,28 @@ use std::convert::Infallible;
 use std::process::ExitCode;
 
 #[derive(Clone, Debug, Default)]
-pub struct State {
-    pub verb: String,
-    pub args: Vec<String>,
-    pub usage: Option<String>,
-    pub error: Option<String>,
-    pub id: Option<String>,
-    pub title: Option<String>,
-    pub body: Option<String>,
-    pub tags: Option<Vec<String>>,
-    pub note: Option<Note>,
-    pub text_to_embed: Option<String>,
-    pub embedding: Option<Vec<f32>>,
+struct State {
+    verb: String,
+    args: Vec<String>,
+    usage: Option<String>,
+    error: Option<String>,
+    id: Option<String>,
+    title: Option<String>,
+    body: Option<String>,
+    tags: Option<Vec<String>>,
+    note: Option<Note>,
+    text_to_embed: Option<String>,
+    embedding: Option<Vec<f32>>,
 }
 
 impl_has!(State: verb, args, usage, error, id, fields, note, embedding);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Id {
+#[expect(
+    clippy::enum_variant_names,
+    reason = "variants mirror the node names in specs/"
+)]
+enum Id {
     IdArg,
     Input,
     ExistsCheck,
@@ -43,7 +47,7 @@ pub enum Id {
     Usage,
 }
 
-pub struct Update<U = System> {
+struct Update<U = System> {
     id_arg: IdArg,
     input: Input<U>,
     exists_check: ExistsCheck<U>,
@@ -57,7 +61,7 @@ pub struct Update<U = System> {
 
 impl Update {
     #[must_use]
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self::with_utils(System)
     }
 }
@@ -70,7 +74,7 @@ impl Default for Update {
 
 impl<U: Clone> Update<U> {
     #[must_use]
-    pub fn with_utils(utils: U) -> Self {
+    fn with_utils(utils: U) -> Self {
         Self {
             // `update` needs stdin as well as an id, so the default usage line won't do.
             id_arg: IdArg::with_usage(r#"Usage: echo '{"body":"..."}' | azk update <id>"#),

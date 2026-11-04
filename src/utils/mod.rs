@@ -11,6 +11,7 @@ pub mod embed;
 pub mod index;
 pub mod notes;
 mod system;
+pub mod terminal;
 
 pub use system::System;
 

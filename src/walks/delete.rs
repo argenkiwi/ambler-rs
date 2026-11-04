@@ -1,8 +1,8 @@
-//! `azk get`: fetches one note and its links. See `specs/get.md`.
+//! `azk delete`: removes a note and every link touching it. See `specs/delete.md`.
 
 use crate::model::Note;
+use crate::nodes::delete::Delete;
 use crate::nodes::exists_check::{self, ExistsCheck};
-use crate::nodes::get::Get;
 use crate::nodes::id_arg::{self, IdArg};
 use crate::nodes::usage::Usage;
 use crate::utils::{Index, NoteStore, Out, System};
@@ -11,58 +11,62 @@ use std::convert::Infallible;
 use std::process::ExitCode;
 
 #[derive(Clone, Debug, Default)]
-pub struct State {
-    pub verb: String,
-    pub args: Vec<String>,
-    pub usage: Option<String>,
-    pub error: Option<String>,
-    pub id: Option<String>,
-    pub note: Option<Note>,
+struct State {
+    verb: String,
+    args: Vec<String>,
+    usage: Option<String>,
+    error: Option<String>,
+    id: Option<String>,
+    note: Option<Note>,
 }
 
 impl_has!(State: verb, args, usage, error, id, note);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Id {
+#[expect(
+    clippy::enum_variant_names,
+    reason = "variants mirror the node names in specs/"
+)]
+enum Id {
     IdArg,
     ExistsCheck,
-    Get,
+    Delete,
     Usage,
 }
 
-pub struct GetWalk<U = System> {
+struct DeleteWalk<U = System> {
     id_arg: IdArg,
     exists_check: ExistsCheck<U>,
-    get: Get<U>,
+    delete: Delete<U>,
     usage: Usage<U>,
 }
 
-impl GetWalk {
+impl DeleteWalk {
     #[must_use]
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self::with_utils(System)
     }
 }
 
-impl Default for GetWalk {
+impl Default for DeleteWalk {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<U: Clone> GetWalk<U> {
+impl<U: Clone> DeleteWalk<U> {
     #[must_use]
-    pub fn with_utils(utils: U) -> Self {
+    fn with_utils(utils: U) -> Self {
         Self {
             id_arg: IdArg::new(),
             exists_check: ExistsCheck::with_utils(utils.clone()),
-            get: Get::with_utils(utils.clone()),
+            delete: Delete::with_utils(utils.clone()),
             usage: Usage::with_utils(utils),
         }
     }
 }
 
-impl<U> Walk for GetWalk<U>
+impl<U> Walk for DeleteWalk<U>
 where
     U: NoteStore + Index + Out + Sync,
 {
@@ -82,12 +86,12 @@ where
             Id::ExistsCheck => {
                 let Ok(outcome) = self.exists_check.run(state).await;
                 match outcome {
-                    exists_check::Outcome::Found => Transition::Next(Id::Get),
+                    exists_check::Outcome::Found => Transition::Next(Id::Delete),
                     exists_check::Outcome::Missing => Transition::Halt,
                 }
             }
-            Id::Get => {
-                let Ok(()) = self.get.run(state).await;
+            Id::Delete => {
+                let Ok(()) = self.delete.run(state).await;
                 Transition::Halt
             }
             Id::Usage => {
@@ -100,77 +104,79 @@ where
 
 pub async fn run(args: Vec<String>) -> ExitCode {
     let mut state = State {
-        verb: "get".into(),
+        verb: "delete".into(),
         args,
         ..State::default()
     };
-    let Ok(()) = GetWalk::new().run(Id::IdArg, &mut state).await;
+    let Ok(()) = DeleteWalk::new().run(Id::IdArg, &mut state).await;
     super::exit_code(&state.usage)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::GraphLink;
+    use crate::model::{GraphLink, Link};
     use crate::testing::{Fake, note};
     use serde_json::json;
 
-    async fn get(fake: &Fake, args: &[&str]) -> State {
+    async fn delete(fake: &Fake, args: &[&str]) -> State {
         let mut state = State {
-            verb: "get".into(),
+            verb: "delete".into(),
             args: args.iter().map(ToString::to_string).collect(),
             ..State::default()
         };
-        let Ok(()) = GetWalk::with_utils(fake).run(Id::IdArg, &mut state).await;
+        let Ok(()) = DeleteWalk::with_utils(fake)
+            .run(Id::IdArg, &mut state)
+            .await;
         state
     }
 
     #[tokio::test]
-    async fn prints_the_note_with_links_in_both_directions() {
-        let fake = Fake::default().with_note(note("a", "A", "body"));
-        fake.links.lock().unwrap().extend([
-            GraphLink {
-                from_id: "a".into(),
-                to_id: "b".into(),
-                relation: "r".into(),
-            },
-            GraphLink {
-                from_id: "c".into(),
-                to_id: "a".into(),
-                relation: "s".into(),
-            },
-            GraphLink {
+    async fn removes_file_entry_and_links_in_both_directions() {
+        let fake = Fake::default().with_note(note("a", "A", "x"));
+        let link = |to: &str| Link {
+            to_id: to.into(),
+            relation: "r".into(),
+        };
+        {
+            use crate::utils::Index;
+            (&fake).upsert(&note("a", "A", "x"), None).unwrap();
+            (&fake).add_links("a", &[link("b")]).unwrap();
+            (&fake).add_links("c", &[link("a")]).unwrap();
+            (&fake).add_links("c", &[link("d")]).unwrap();
+        }
+
+        delete(&fake, &["a"]).await;
+
+        assert!(fake.file("a").is_none());
+        assert!(!fake.indexed.lock().unwrap().contains_key("a"));
+        assert_eq!(
+            *fake.links.lock().unwrap(),
+            [GraphLink {
                 from_id: "c".into(),
                 to_id: "d".into(),
-                relation: "t".into(),
-            },
-        ]);
-
-        get(&fake, &["a"]).await;
-
-        let out = fake.printed_json();
-        assert_eq!(out["body"], "body");
-        assert_eq!(out["links"].as_array().unwrap().len(), 2);
+                relation: "r".into()
+            }]
+        );
+        assert_eq!(fake.printed_json(), json!({"id":"a","deleted":true}));
     }
 
     #[tokio::test]
-    async fn a_missing_note_is_an_error_value_not_usage() {
+    async fn a_missing_note_is_an_error_value() {
         let fake = Fake::default();
 
-        let state = get(&fake, &["nope"]).await;
+        let state = delete(&fake, &["nope"]).await;
 
         assert_eq!(state.usage, None);
         assert_eq!(fake.printed_json(), json!({"error":"note nope not found"}));
     }
 
     #[tokio::test]
-    async fn no_id_prints_usage_to_stderr() {
+    async fn no_id_prints_usage() {
         let fake = Fake::default();
 
-        let state = get(&fake, &[]).await;
+        let state = delete(&fake, &[]).await;
 
-        assert_eq!(state.usage.as_deref(), Some("Usage: azk get <id>"));
-        assert_eq!(fake.eprinted(), ["Usage: azk get <id>"]);
-        assert!(fake.printed().is_empty());
+        assert_eq!(state.usage.as_deref(), Some("Usage: azk delete <id>"));
     }
 }

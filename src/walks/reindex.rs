@@ -15,18 +15,18 @@ use std::process::ExitCode;
 
 /// `reindex` takes no arguments, so it has no `usage` and cannot be invoked badly.
 #[derive(Clone, Debug, Default)]
-pub struct State {
-    pub error: Option<String>,
-    pub all_ids: Vec<String>,
-    pub remaining_ids: VecDeque<String>,
-    pub id: Option<String>,
-    pub note: Option<Note>,
-    pub text_to_embed: Option<String>,
-    pub embedding: Option<Vec<f32>>,
-    pub indexed: usize,
-    pub updated: usize,
-    pub total: usize,
-    pub removed: usize,
+struct State {
+    error: Option<String>,
+    all_ids: Vec<String>,
+    remaining_ids: VecDeque<String>,
+    id: Option<String>,
+    note: Option<Note>,
+    text_to_embed: Option<String>,
+    embedding: Option<Vec<f32>>,
+    indexed: usize,
+    updated: usize,
+    total: usize,
+    removed: usize,
 }
 
 impl_has!(State: error, id, note, embedding);
@@ -60,7 +60,7 @@ impl HasQueue for State {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Id {
+enum Id {
     List,
     Next,
     DetectChange,
@@ -71,7 +71,7 @@ pub enum Id {
     Finish,
 }
 
-pub struct Reindex<U = System> {
+struct Reindex<U = System> {
     list: List<U>,
     next: Next,
     detect_change: DetectChange<U>,
@@ -84,7 +84,7 @@ pub struct Reindex<U = System> {
 
 impl Reindex {
     #[must_use]
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self::with_utils(System)
     }
 }
@@ -97,7 +97,7 @@ impl Default for Reindex {
 
 impl<U: Clone> Reindex<U> {
     #[must_use]
-    pub fn with_utils(utils: U) -> Self {
+    fn with_utils(utils: U) -> Self {
         Self {
             list: List::with_utils(utils.clone()),
             next: Next,

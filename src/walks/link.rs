@@ -11,15 +11,15 @@ use std::convert::Infallible;
 use std::process::ExitCode;
 
 #[derive(Clone, Debug, Default)]
-pub struct State {
-    pub args: Vec<String>,
-    pub usage: Option<String>,
-    pub error: Option<String>,
-    pub from_id: Option<String>,
-    pub to_id: Option<String>,
-    pub relation: Option<String>,
-    pub note: Option<Note>,
-    pub links: Vec<Link>,
+struct State {
+    args: Vec<String>,
+    usage: Option<String>,
+    error: Option<String>,
+    from_id: Option<String>,
+    to_id: Option<String>,
+    relation: Option<String>,
+    note: Option<Note>,
+    links: Vec<Link>,
 }
 
 impl_has!(State: args, usage, error, links, note);
@@ -40,7 +40,7 @@ impl HasLinkArgs for State {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Id {
+enum Id {
     Input,
     Validate,
     WriteNote,
@@ -49,7 +49,7 @@ pub enum Id {
     Usage,
 }
 
-pub struct LinkWalk<U = System> {
+struct LinkWalk<U = System> {
     input: Input,
     validate: Validate<U>,
     write_note: WriteNote<U>,
@@ -60,7 +60,7 @@ pub struct LinkWalk<U = System> {
 
 impl LinkWalk {
     #[must_use]
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self::with_utils(System)
     }
 }
@@ -73,7 +73,7 @@ impl Default for LinkWalk {
 
 impl<U: Clone> LinkWalk<U> {
     #[must_use]
-    pub fn with_utils(utils: U) -> Self {
+    fn with_utils(utils: U) -> Self {
         Self {
             input: Input,
             validate: Validate::with_utils(utils.clone()),

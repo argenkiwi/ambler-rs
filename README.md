@@ -12,10 +12,12 @@ A program is a set of small **nodes** joined into a **walk**. Each node does one
 Requires Rust 1.85 or later.
 
 ```bash
-cargo run --example counter
+cargo run -- help          # or: cargo install --path . && azk help
 ```
 
-The example asks for a starting number, counts up once a second, and stops at random. Invalid input sends the walk back to the start. See [`specs/counter.md`](specs/counter.md) for the behaviour it implements.
+This branch builds `azk`, a Zettelkasten command line with one walk per verb (`search`, `create`, `get`, `update`, `delete`, `link`, `reindex`, `help`). `src/main.rs` dispatches the verb to its walk in `src/walks/`; see `specs/<verb>.md` for the behaviour each implements.
+
+The reference walk used in the concepts below, `counter`, lives in [`src/walks/counter.rs`](src/walks/counter.rs) and is specified in [`specs/counter.md`](specs/counter.md).
 
 ## Concepts
 
@@ -69,7 +71,7 @@ async fn step(&self, id: Id, state: &mut State) -> Result<Transition<Id>, start:
 }
 ```
 
-Then `walk.run(Id::Start, &mut state).await` steps until a node halts. The complete walk, including a test of its wiring, is in [`examples/counter.rs`](examples/counter.rs).
+Then `walk.run(Id::Start, &mut state).await` steps until a node halts. The complete walk, including a test of its wiring, is in [`src/walks/counter.rs`](src/walks/counter.rs).
 
 > [!TIP]
 > Don't add a `_ =>` arm when matching outcomes. Leaving it out is what makes a newly added outcome fail the build until it is wired.
@@ -78,8 +80,10 @@ Then `walk.run(Id::Start, &mut state).await` steps until a node halts. The compl
 
 ```text
 src/lib.rs          Node and Walk traits, Transition
-src/nodes/          Reusable nodes (count, start, stop) and shared state traits
-examples/counter.rs A complete walk with its State, Id enum and wiring test
+src/main.rs         The program: runs this branch's primary walk (extra walks go in src/bin/)
+src/walks/          Walks wiring nodes together, each with an inline wiring test
+src/nodes/          Reusable atomic step nodes and shared state traits
+src/utils/          Side-effectful utilities (terminal I/O, external APIs, system services)
 specs/              Plain-language spec for each walk
 notes/              Design notes (Zettelkasten, Markdown source of truth)
 .agents/skills/     Agent skills for creating nodes, utils, tests, walks and specs
@@ -88,7 +92,7 @@ notes/              Design notes (Zettelkasten, Markdown source of truth)
 ## Development
 
 ```bash
-cargo test                                   # unit tests and the example's wiring test
+cargo test                                   # node and walk tests
 cargo clippy --all-targets -- -D warnings
 cargo fmt --check
 ```

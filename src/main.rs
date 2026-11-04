@@ -4,5 +4,5 @@ use std::process::ExitCode;
 
 #[tokio::main]
 async fn main() -> ExitCode {
-    ambler::azk::dispatch(std::env::args().skip(1).collect()).await
+    ambler::walks::dispatch(std::env::args().skip(1).collect()).await
 }

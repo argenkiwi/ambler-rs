@@ -1,4 +1,5 @@
-//! The eight verbs of the `azk` command line, one walk each.
+//! Walks: state machine graphs of nodes wired together. `counter` is the template's reference
+//! walk; the rest are the eight verbs of the `azk` command line, one walk each.
 //!
 //! There is deliberately no routing walk: a [`Walk`](crate::Walk) has one state, and the nodes
 //! the verbs share have a different successor per verb. Choosing a verb is a one-off lookup, done
@@ -6,6 +7,7 @@
 
 use std::process::ExitCode;
 
+pub mod counter;
 pub mod create;
 pub mod delete;
 pub mod get;

@@ -13,23 +13,23 @@ use std::convert::Infallible;
 use std::process::ExitCode;
 
 #[derive(Clone, Debug, Default)]
-pub struct State {
-    pub usage: Option<String>,
-    pub error: Option<String>,
-    pub title: Option<String>,
-    pub body: Option<String>,
-    pub tags: Option<Vec<String>>,
-    pub links: Vec<Link>,
-    pub from_id: Option<String>,
-    pub note: Option<Note>,
-    pub text_to_embed: Option<String>,
-    pub embedding: Option<Vec<f32>>,
+struct State {
+    usage: Option<String>,
+    error: Option<String>,
+    title: Option<String>,
+    body: Option<String>,
+    tags: Option<Vec<String>>,
+    links: Vec<Link>,
+    from_id: Option<String>,
+    note: Option<Note>,
+    text_to_embed: Option<String>,
+    embedding: Option<Vec<f32>>,
 }
 
 impl_has!(State: usage, error, fields, links, note, embedding);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Id {
+enum Id {
     Input,
     Init,
     Embed,
@@ -40,7 +40,7 @@ pub enum Id {
     Usage,
 }
 
-pub struct Create<U = System> {
+struct Create<U = System> {
     input: Input<U>,
     init: Init<U>,
     embed: Embed<U>,
@@ -53,7 +53,7 @@ pub struct Create<U = System> {
 
 impl Create {
     #[must_use]
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self::with_utils(System)
     }
 }
@@ -66,7 +66,7 @@ impl Default for Create {
 
 impl<U: Clone> Create<U> {
     #[must_use]
-    pub fn with_utils(utils: U) -> Self {
+    fn with_utils(utils: U) -> Self {
         Self {
             input: Input::with_utils(utils.clone()),
             init: Init::with_utils(utils.clone()),

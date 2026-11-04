@@ -8,10 +8,10 @@ use std::convert::Infallible;
 use std::process::ExitCode;
 
 #[derive(Clone, Debug, Default)]
-pub struct State {
-    pub args: Vec<String>,
-    pub usage: Option<String>,
-    pub topic: String,
+struct State {
+    args: Vec<String>,
+    usage: Option<String>,
+    topic: String,
 }
 
 impl_has!(State: args, usage);
@@ -26,13 +26,13 @@ impl HasTopic for State {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Id {
+enum Id {
     Input,
     Print,
     Usage,
 }
 
-pub struct Help<U = System> {
+struct Help<U = System> {
     input: Input,
     print: Print<U>,
     usage: Usage<U>,
@@ -40,7 +40,7 @@ pub struct Help<U = System> {
 
 impl Help {
     #[must_use]
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self::with_utils(System)
     }
 }
@@ -53,7 +53,7 @@ impl Default for Help {
 
 impl<U: Clone> Help<U> {
     #[must_use]
-    pub fn with_utils(utils: U) -> Self {
+    fn with_utils(utils: U) -> Self {
         Self {
             input: Input,
             print: Print::with_utils(utils.clone()),
