@@ -12,10 +12,12 @@ A program is a set of small **nodes** joined into a **walk**. Each node does one
 Requires Rust 1.85 or later.
 
 ```bash
+cargo run
+# or
 cargo run --example counter
 ```
 
-The example asks for a starting number, counts up once a second, and stops at random. Invalid input sends the walk back to the start. See [`specs/counter.md`](specs/counter.md) for the behaviour it implements.
+The program asks for a starting number, counts up once a second, and stops at random. Invalid input sends the walk back to the start. See [`specs/counter.md`](specs/counter.md) for the behaviour it implements.
 
 ## Concepts
 
@@ -69,7 +71,7 @@ async fn step(&self, id: Id, state: &mut State) -> Result<Transition<Id>, start:
 }
 ```
 
-Then `walk.run(Id::Start, &mut state).await` steps until a node halts. The complete walk, including a test of its wiring, is in [`examples/counter.rs`](examples/counter.rs).
+Then `walk.run(Id::Start, &mut state).await` steps until a node halts. The complete walk is defined in [`src/walks/counter.rs`](src/walks/counter.rs), run by [`src/main.rs`](src/main.rs) and [`examples/counter.rs`](examples/counter.rs), and tested with mock utils in [`tests/counter.rs`](tests/counter.rs).
 
 > [!TIP]
 > Don't add a `_ =>` arm when matching outcomes. Leaving it out is what makes a newly added outcome fail the build until it is wired.
@@ -77,9 +79,13 @@ Then `walk.run(Id::Start, &mut state).await` steps until a node halts. The compl
 ## Project layout
 
 ```text
-src/lib.rs          Node and Walk traits, Transition
-src/nodes/          Reusable nodes (count, start, stop) and shared state traits
-examples/counter.rs A complete walk with its State, Id enum and wiring test
+src/lib.rs          Node, Walk, and Transition traits, re-exporting nodes, walks, and utils
+src/main.rs         Default application binary entrypoint running the primary walk
+src/walks/          Walks (state machine graphs wiring nodes together)
+src/nodes/          Reusable atomic step nodes and shared state traits
+src/utils/          Side-effectful utilities (terminal I/O, external APIs, system services)
+examples/           Walk runners (thin entrypoints for `cargo run --example <name>`)
+tests/              Integration tests testing walks and library features with mock utils
 specs/              Plain-language spec for each walk
 notes/              Design notes (Zettelkasten, Markdown source of truth)
 .agents/skills/     Agent skills for creating nodes, utils, tests, walks and specs
@@ -88,7 +94,7 @@ notes/              Design notes (Zettelkasten, Markdown source of truth)
 ## Development
 
 ```bash
-cargo test                                   # unit tests and the example's wiring test
+cargo test                                   # unit tests and integration tests
 cargo clippy --all-targets -- -D warnings
 cargo fmt --check
 ```

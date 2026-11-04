@@ -11,7 +11,7 @@ pub struct SystemUtils;
 
 impl Utils for SystemUtils {
     fn print(&self, message: &str) {
-        println!("{message}");
+        crate::utils::terminal::print_line(message);
     }
 }
 
