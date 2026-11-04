@@ -2,6 +2,7 @@
 
 pub mod http;
 pub mod khinsider;
+pub mod terminal;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

@@ -1,15 +1,15 @@
 //! Downloads the audio files listed in an M3U playlist, resolving khinsider pages to direct links.
 //!
-//! Run with `cargo run --example m3ud -- playlist.m3u`. See `specs/m3ud.md`.
+//! See `specs/m3ud.md`.
 
-use ambler::nodes::check_m3u_file::{self, CheckM3uFile};
-use ambler::nodes::confirm::{self, Confirm};
-use ambler::nodes::download_files::{self, DownloadFiles};
-use ambler::nodes::read_m3u_file::{self, ReadM3uFile};
-use ambler::nodes::resolve_urls::{self, ResolveUrls};
-use ambler::nodes::save_m3u_file::{self, SaveM3uFile};
-use ambler::nodes::{HasM3uFilePath, HasUrls};
-use ambler::{Node, Transition, Walk};
+use crate::nodes::check_m3u_file::{self, CheckM3uFile};
+use crate::nodes::confirm::{self, Confirm};
+use crate::nodes::download_files::{self, DownloadFiles};
+use crate::nodes::read_m3u_file::{self, ReadM3uFile};
+use crate::nodes::resolve_urls::{self, ResolveUrls};
+use crate::nodes::save_m3u_file::{self, SaveM3uFile};
+use crate::nodes::{HasM3uFilePath, HasUrls};
+use crate::{Node, Transition, Walk};
 use std::path::{Path, PathBuf};
 
 #[derive(Clone, Debug, Default)]
@@ -48,8 +48,9 @@ enum Id {
     SaveLocalM3uFile,
 }
 
+/// What can stop the walk early.
 #[derive(Debug, thiserror::Error)]
-enum Error {
+pub enum Error {
     #[error(transparent)]
     Read(#[from] read_m3u_file::Error),
     #[error(transparent)]
@@ -150,8 +151,12 @@ where
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Error> {
+/// Runs the m3ud walk on the playlist named on the command line.
+///
+/// # Errors
+///
+/// Returns [`Error`] if reading, resolving, saving or downloading fails, or a prompt cannot be read.
+pub async fn run() -> Result<(), Error> {
     M3ud::new()
         .run(Id::CheckM3uFile, &mut State::default())
         .await
@@ -160,8 +165,8 @@ async fn main() -> Result<(), Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ambler::nodes::read_m3u_file::KHINSIDER_PREFIX;
-    use ambler::utils;
+    use crate::nodes::read_m3u_file::KHINSIDER_PREFIX;
+    use crate::utils;
     use std::collections::{BTreeMap, VecDeque};
     use std::io;
     use std::sync::Mutex;

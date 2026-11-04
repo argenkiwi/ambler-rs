@@ -72,8 +72,7 @@ async fn write_line(entry: &str) -> std::io::Result<()> {
 
 Register the module:
 
-- Add `pub mod <name>;` to `src/utils/mod.rs` (create it if it doesn't exist).
-- If this is the first utility, also add `pub mod utils;` to `src/lib.rs`, next to `pub mod nodes;`.
+- Add `pub mod <name>;` to `src/utils/mod.rs` (keep the list alphabetical). See `src/utils/terminal.rs` for an existing utility used by `src/nodes/start.rs`.
 
 ### Rules
 
@@ -112,7 +111,7 @@ If the utility needs a crate that isn't already a dependency, add it with Cargo:
 cargo add reqwest --features json
 ```
 
-This updates `[dependencies]` in `Cargo.toml`. Check `Cargo.toml` first — the crate may already be listed (`rand`, `thiserror` and `tokio` are there by default). `tokio` is enabled with only the `time` feature, so a util that needs more must add it, e.g. `cargo add tokio --features fs,io-util,sync` for the journal example above.
+This updates `[dependencies]` in `Cargo.toml`. Check `Cargo.toml` first — the crate may already be listed (`rand`, `thiserror` and `tokio` are there by default). `tokio` is enabled with the `time`, `macros` and `rt-multi-thread` features, so a util that needs more must add them, e.g. `cargo add tokio --features fs,io-util,sync` for the journal example above.
 
 ---
 
@@ -144,7 +143,7 @@ Tests still inject a `MockUtils` and never touch the utility — that's the poin
 ## 5. Checklist before finishing
 
 - [ ] `src/utils/<name>.rs` exists and exports the required functions.
-- [ ] `pub mod <name>;` is in `src/utils/mod.rs`, and `pub mod utils;` is in `src/lib.rs`.
+- [ ] `pub mod <name>;` is in `src/utils/mod.rs`.
 - [ ] All extra crates are listed in `Cargo.toml`.
 - [ ] Exported function return types match the node's `Utils` methods.
 - [ ] Fallible functions return `Result`, and async futures are `Send`.
