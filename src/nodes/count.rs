@@ -25,7 +25,7 @@ pub struct SystemUtils;
 
 impl Utils for SystemUtils {
     fn print(&self, message: &str) {
-        crate::utils::terminal::print_line(message);
+        println!("{message}");
     }
 
     fn sleep(&self, duration: Duration) -> impl Future<Output = ()> + Send {

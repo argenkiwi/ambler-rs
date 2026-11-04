@@ -15,7 +15,7 @@ This skill guides you in creating a Markdown specification file (`specs/<walk-na
 ### 1. Identify the Walk's Name and Purpose
 
 - If not provided, ask the user for the name and a brief description of the walk.
-- The file should be named `specs/<name>.md`, matching the walk example `examples/<name>.rs`.
+- The file should be named `specs/<name>.md`, matching the walk module `src/walks/<name>.rs`.
 
 ### 2. Map the Nodes and Edges
 
@@ -73,7 +73,7 @@ Use the Write tool to create `specs/<name>.md`.
 - **Consistency**: Browse `specs/*.md` before starting to identify reusable nodes and ensure the new specification follows the established style and formatting.
 - **Node name casing**: Use Title Case for headings (`### Count`) and backtick-quoted ALL_CAPS for references in edge descriptions (`` `COUNT` ``). In code these become `Id` enum variants (`Id::Count`), and each edge becomes one `Outcome` variant of the node that follows it.
 - **Clarity**: Describe *what* the program does, not *how* the code implements it — no Rust types, traits or crate names.
-- **Implementation Alignment**: If `examples/<name>.rs` already exists, ensure the spec reflects the implementation. If it doesn't, treat the spec as a blueprint.
+- **Implementation Alignment**: If `src/walks/<name>.rs` already exists, ensure the spec reflects the implementation. If it doesn't, treat the spec as a blueprint.
 - **No extra sections**: Stick to `# Program Specifications`, `## Nodes`, and `## Shared State` — no additional top-level sections unless the walk clearly requires them.
 - **Pragmatic State**: Don't guess the state first; look at what each node needs to know or change, and then define the state.
 

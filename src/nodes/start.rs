@@ -1,5 +1,6 @@
 use crate::Node;
 use crate::nodes::HasCount;
+use crate::utils::terminal;
 use std::io;
 
 /// Where [`Start`] leaves the walk.
@@ -28,11 +29,11 @@ pub struct SystemUtils;
 
 impl Utils for SystemUtils {
     fn read_line(&self, message: &str) -> io::Result<Option<String>> {
-        crate::utils::terminal::prompt(message)
+        terminal::prompt(message)
     }
 
     fn print(&self, message: &str) {
-        crate::utils::terminal::print_line(message);
+        println!("{message}");
     }
 }
 

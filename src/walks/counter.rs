@@ -8,9 +8,12 @@ use crate::nodes::start::{self, Start};
 use crate::nodes::stop::{self, Stop};
 use crate::{Node, Transition, Walk};
 
+/// What can stop the walk early. Only the start node can fail.
+pub type Error = start::Error;
+
 #[derive(Clone, Debug, Default)]
-pub struct State {
-    pub count: i32,
+struct State {
+    count: i32,
 }
 
 impl HasCount for State {
@@ -23,30 +26,23 @@ impl HasCount for State {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Id {
+enum Id {
     Start,
     Count,
     Stop,
 }
 
 #[derive(Default)]
-pub struct Counter<A = start::SystemUtils, B = count::SystemUtils, C = stop::SystemUtils> {
-    pub start: Start<A>,
-    pub count: Count<B>,
-    pub stop: Stop<C>,
+struct Counter<A = start::SystemUtils, B = count::SystemUtils, C = stop::SystemUtils> {
+    start: Start<A>,
+    count: Count<B>,
+    stop: Stop<C>,
 }
 
 impl Counter {
-    #[must_use]
-    pub fn new() -> Self {
+    /// Production wiring: every node uses its `SystemUtils`.
+    fn new() -> Self {
         Self::default()
-    }
-}
-
-impl<A, B, C> Counter<A, B, C> {
-    #[must_use]
-    pub fn with_utils(start: Start<A>, count: Count<B>, stop: Stop<C>) -> Self {
-        Self { start, count, stop }
     }
 }
 
@@ -58,9 +54,9 @@ where
 {
     type Id = Id;
     type State = State;
-    type Error = start::Error;
+    type Error = Error;
 
-    async fn step(&self, id: Id, state: &mut State) -> Result<Transition<Id>, start::Error> {
+    async fn step(&self, id: Id, state: &mut State) -> Result<Transition<Id>, Error> {
         Ok(match id {
             Id::Start => match self.start.run(state).await? {
                 start::Outcome::Success => Transition::Next(Id::Count),
@@ -85,9 +81,9 @@ where
 ///
 /// # Errors
 ///
-/// Returns [`start::Error`] if reading user input fails.
-pub async fn run() -> Result<(), start::Error> {
-    Counter::new().run(Id::Start, &mut State { count: 0 }).await
+/// Returns [`Error`] if reading user input fails.
+pub async fn run() -> Result<(), Error> {
+    Counter::new().run(Id::Start, &mut State::default()).await
 }
 
 #[cfg(test)]
