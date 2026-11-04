@@ -11,9 +11,12 @@ use crate::nodes::reindex::{
 use crate::utils::{Embedder, Index, NoteStore, Out, System};
 use crate::{Node, Transition, Walk, impl_has};
 use std::collections::VecDeque;
-use std::process::ExitCode;
+use std::convert::Infallible;
 
-/// `reindex` takes no arguments, so it has no `usage` and cannot be invoked badly.
+/// `reindex` takes no arguments, so it cannot be invoked badly.
+pub type Error = Infallible;
+
+/// `reindex` takes no arguments, so it has no `usage`.
 #[derive(Clone, Debug, Default)]
 struct State {
     error: Option<String>,
@@ -163,12 +166,20 @@ where
     }
 }
 
-pub async fn run(_args: Vec<String>) -> ExitCode {
+/// Runs `azk reindex`; `_args` is unused.
+///
+/// A failure (an unreadable note, an unreachable index) is printed as `{ "error" }` on stdout,
+/// as the spec requires.
+///
+/// # Errors
+///
+/// Never: [`Error`] is [`Infallible`].
+pub async fn run(_args: Vec<String>) -> Result<(), Error> {
     let mut state = State::default();
     if let Err(e) = Reindex::new().run(Id::List, &mut state).await {
         println!("{}", serde_json::json!({ "error": e.to_string() }));
     }
-    ExitCode::SUCCESS
+    Ok(())
 }
 
 #[cfg(test)]

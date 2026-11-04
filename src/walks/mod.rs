@@ -1,11 +1,7 @@
 //! Walks: state machine graphs of nodes wired together. `counter` is the template's reference
 //! walk; the rest are the eight verbs of the `azk` command line, one walk each.
 //!
-//! There is deliberately no routing walk: a [`Walk`](crate::Walk) has one state, and the nodes
-//! the verbs share have a different successor per verb. Choosing a verb is a one-off lookup, done
-//! by [`dispatch`].
-
-use std::process::ExitCode;
+//! Each verb walk exports `Error` and `run(args)`; `src/main.rs` picks the verb.
 
 pub mod counter;
 pub mod create;
@@ -17,31 +13,15 @@ pub mod reindex;
 pub mod search;
 pub mod update;
 
-/// Runs the verb named by `args[0]` with the rest as its arguments, and returns the exit code:
-/// 1 for a bad invocation, 0 otherwise (failures inside a verb are printed as `{ "error" }`).
-pub async fn dispatch(args: Vec<String>) -> ExitCode {
-    let mut args = args.into_iter();
-    let verb = args.next().unwrap_or_default();
-    let rest: Vec<String> = args.collect();
-    match verb.to_lowercase().as_str() {
-        "search" => search::run(rest).await,
-        "create" => create::run(rest).await,
-        "get" => get::run(rest).await,
-        "update" => update::run(rest).await,
-        "delete" => delete::run(rest).await,
-        "link" => link::run(rest).await,
-        "reindex" => reindex::run(rest).await,
-        "help" => help::run(rest).await,
-        "" => help::run(Vec::new()).await,
-        _ => help::run(vec![verb]).await,
-    }
-}
+/// A bad invocation of a verb. The walk has already printed this usage message to stderr; the
+/// process exits 1.
+#[derive(Debug, thiserror::Error)]
+#[error("{0}")]
+pub struct UsageError(pub String);
 
-/// Exit 1 when a node queued a usage message, 0 otherwise.
-pub(crate) fn exit_code(usage: &Option<String>) -> ExitCode {
-    if usage.is_some() {
-        ExitCode::FAILURE
-    } else {
-        ExitCode::SUCCESS
+impl UsageError {
+    /// `Err` when a node queued a usage message, `Ok` otherwise.
+    pub(crate) fn check(usage: Option<String>) -> Result<(), Self> {
+        usage.map_or(Ok(()), |message| Err(Self(message)))
     }
 }

@@ -9,7 +9,9 @@ use crate::nodes::search::{
 use crate::nodes::usage::Usage;
 use crate::utils::{Embedder, Index, Out, System};
 use crate::{Node, Transition, Walk, impl_has};
-use std::process::ExitCode;
+
+/// A bad invocation of the verb.
+pub type Error = super::UsageError;
 
 #[derive(Clone, Debug, Default)]
 struct State {
@@ -139,7 +141,15 @@ where
     }
 }
 
-pub async fn run(args: Vec<String>) -> ExitCode {
+/// Runs `azk search <query>`.
+///
+/// A failure inside the verb (a missing note, an unreachable index) is printed as `{ "error" }`
+/// on stdout and still returns `Ok`, as the spec requires.
+///
+/// # Errors
+///
+/// Returns [`Error`] when the invocation is bad; its usage message has already gone to stderr.
+pub async fn run(args: Vec<String>) -> Result<(), Error> {
     let mut state = State {
         args,
         ..State::default()
@@ -147,7 +157,7 @@ pub async fn run(args: Vec<String>) -> ExitCode {
     if let Err(e) = Search::new().run(Id::Input, &mut state).await {
         println!("{}", serde_json::json!({ "error": e.to_string() }));
     }
-    super::exit_code(&state.usage)
+    super::UsageError::check(state.usage)
 }
 
 #[cfg(test)]

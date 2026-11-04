@@ -8,7 +8,9 @@ use crate::nodes::write_note::{self, WriteNote};
 use crate::utils::{Index, NoteStore, Out, System};
 use crate::{Node, Transition, Walk, impl_has};
 use std::convert::Infallible;
-use std::process::ExitCode;
+
+/// A bad invocation of the verb.
+pub type Error = super::UsageError;
 
 #[derive(Clone, Debug, Default)]
 struct State {
@@ -135,13 +137,21 @@ where
     }
 }
 
-pub async fn run(args: Vec<String>) -> ExitCode {
+/// Runs `azk link <from> <to> <relation>`.
+///
+/// A failure inside the verb (a missing note, an unreachable index) is printed as `{ "error" }`
+/// on stdout and still returns `Ok`, as the spec requires.
+///
+/// # Errors
+///
+/// Returns [`Error`] when the invocation is bad; its usage message has already gone to stderr.
+pub async fn run(args: Vec<String>) -> Result<(), Error> {
     let mut state = State {
         args,
         ..State::default()
     };
     let Ok(()) = LinkWalk::new().run(Id::Input, &mut state).await;
-    super::exit_code(&state.usage)
+    super::UsageError::check(state.usage)
 }
 
 #[cfg(test)]
