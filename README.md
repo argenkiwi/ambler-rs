@@ -107,6 +107,21 @@ The [`.agents/skills`](.agents/skills) directory holds step-by-step guides for c
 | `ambler-walk` | Wire nodes into a new walk and spec |
 | `ambler-spec` | Write a walk's Markdown spec |
 
+### Sandboxed agent (Pi + local Ollama)
+
+`devenv shell` provides the Rust toolchain and a `pi` command. The command runs the [Pi coding agent](https://github.com/earendil-works/pi) inside a Docker container built from `sandbox/`. Only this repo is mounted, and Pi talks to the host's Ollama model `qwen3.8:27b-mlx` through `host.docker.internal:11434`.
+
+```bash
+# Start Docker Desktop and Ollama first
+devenv shell
+pi                 # interactive agent (builds the image on first run)
+pi -p "..."        # one-shot prompt
+sandbox-shell      # bash inside the same container
+sandbox-build      # rebuild after editing sandbox/ or upgrading Rust
+```
+
+Pi doesn't ask before running commands, so it's never installed on the host. Edits under `/workspace` write straight through to your checkout. The container keeps its Cargo registry and its `target` dir in Docker volumes (`ambler-rs-cargo-registry` and `ambler-rs-target`), so Linux builds never touch the host's `./target`.
+
 ## Limitations
 
 The traits use native `async fn`, which is not `dyn`-compatible. Every walk is a concrete type, so graphs assembled at runtime from arbitrary nodes are not supported.
