@@ -1,15 +1,15 @@
 //! Sets up and launches a containerised Pi coding agent for a project.
 //!
-//! Run with `cargo run --bin pico -- [target folder]`.
+//! Run with `cargo run --bin pide -- [target folder]`.
 
 use std::error::Error as _;
 use std::process::ExitCode;
 
-use ambler::walks::pico::Error;
+use ambler::walks::pide::Error;
 
 #[tokio::main]
 async fn main() -> ExitCode {
-    match ambler::walks::pico::run().await {
+    match ambler::walks::pide::run().await {
         Ok(()) => ExitCode::SUCCESS,
         // The walk's FAIL node has already explained what went wrong.
         Err(Error::Failed) => ExitCode::FAILURE,

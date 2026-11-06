@@ -1,7 +1,7 @@
 //! Sets up a containerised Pi coding agent for a project, backed by a local LLM server, and
 //! launches it.
 //!
-//! See `specs/pico.md`.
+//! See `specs/pide.md`.
 
 use crate::nodes::build_image::{self, BuildImage};
 use crate::nodes::check_config::{self, CheckConfig};
@@ -37,7 +37,7 @@ pub enum Error {
     #[error(transparent)]
     BuildImage(#[from] build_image::Error),
     /// The walk ended at `FAIL`, which has already reported why.
-    #[error("pico stopped before Pi could run")]
+    #[error("pide stopped before Pi could run")]
     Failed,
 }
 
@@ -140,7 +140,7 @@ enum Id {
 }
 
 #[derive(Default)]
-struct Pico<
+struct Pide<
     A = resolve_target::SystemUtils,
     B = detect_runtime::SystemUtils,
     C = ensure_containerfile::SystemUtils,
@@ -170,14 +170,14 @@ struct Pico<
     fail: Fail<M>,
 }
 
-impl Pico {
+impl Pide {
     /// Production wiring: every node uses its `SystemUtils`.
     fn new() -> Self {
         Self::default()
     }
 }
 
-impl<A, B, C, D, E, F, G, H, I, J, K, L, M> Walk for Pico<A, B, C, D, E, F, G, H, I, J, K, L, M>
+impl<A, B, C, D, E, F, G, H, I, J, K, L, M> Walk for Pide<A, B, C, D, E, F, G, H, I, J, K, L, M>
 where
     A: resolve_target::Utils + Sync,
     B: detect_runtime::Utils + Sync,
@@ -271,12 +271,12 @@ where
     }
 }
 
-/// Runs pico against the folder given as the first argument, or the current folder.
+/// Runs pide against the folder given as the first argument, or the current folder.
 ///
 /// # Errors
 ///
 /// Returns [`Error::Failed`] if the walk ended at `FAIL` (which has already printed why), or
-/// another [`Error`] if reading input or writing pico's files failed.
+/// another [`Error`] if reading input or writing pide's files failed.
 pub async fn run() -> Result<(), Error> {
     let target = env::args_os()
         .nth(1)
@@ -285,7 +285,7 @@ pub async fn run() -> Result<(), Error> {
         target,
         ..State::default()
     };
-    Pico::new().run(Id::ResolveTarget, &mut state).await?;
+    Pide::new().run(Id::ResolveTarget, &mut state).await?;
     match state.error {
         Some(_) => Err(Error::Failed),
         None => Ok(()),
@@ -539,7 +539,7 @@ mod tests {
         }
     }
 
-    type Scripted<'a> = Pico<
+    type Scripted<'a> = Pide<
         &'a Script,
         &'a Script,
         &'a Script,
@@ -555,8 +555,8 @@ mod tests {
         &'a Script,
     >;
 
-    fn pico(script: &Script) -> Scripted<'_> {
-        Pico {
+    fn pide(script: &Script) -> Scripted<'_> {
+        Pide {
             resolve_target: ResolveTarget::with_utils(script),
             detect_runtime: DetectRuntime::with_utils(script),
             ensure_containerfile: EnsureContainerfile::with_utils(script),
@@ -578,7 +578,7 @@ mod tests {
             target: ".".into(),
             ..State::default()
         };
-        pico(script)
+        pide(script)
             .run(Id::ResolveTarget, &mut state)
             .await
             .unwrap();
@@ -593,7 +593,7 @@ mod tests {
         script.printed.lock().unwrap().last().cloned().unwrap()
     }
 
-    /// A project pico has already set up: Containerfile, config and prompt all exist.
+    /// A project pide has already set up: Containerfile, config and prompt all exist.
     fn configured() -> Script {
         Script::default()
             .with_file(
@@ -647,7 +647,7 @@ mod tests {
         assert_eq!(*script.launches.lock().unwrap(), 1);
         assert_eq!(
             last_printed(&script),
-            "Changes made with /containerfile take effect the next time you run pico."
+            "Changes made with /containerfile take effect the next time you run pide."
         );
     }
 

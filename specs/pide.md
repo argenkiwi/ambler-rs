@@ -1,6 +1,6 @@
 # Program Specifications
 
-Pico quickly sets up a containerised development environment for a code project. Inside the container, the Pi coding agent talks to a local LLM server such as Ollama or LM Studio. Pico targets a project folder, which is the current folder unless another one is given, and keeps everything it creates under `<target>/.pico/`:
+Pide (Pi Development Environment) quickly sets up a containerised development environment for a code project. Inside the container, the Pi coding agent talks to a local LLM server such as Ollama or LM Studio. Pide targets a project folder, which is the current folder unless another one is given, and keeps everything it creates under `<target>/.pide/`:
 
 - `Containerfile`: the image definition. It starts with the base layers needed to run Pi, and the `/containerfile` slash command adds the project's own dependencies to it.
 - `.gitignore`: keeps Pi's session history out of version control.
@@ -26,19 +26,19 @@ Pico quickly sets up a containerised development environment for a code project.
 - If the engine is ready, it transitions to `ENSURE_CONTAINERFILE`.
 
 ### Ensure Containerfile
-- Checks for `.pico/Containerfile` in the target folder.
+- Checks for `.pide/Containerfile` in the target folder.
 - If it is missing, it writes the base Containerfile and informs the user. The base image:
   - starts from a slim Debian image with the Node runtime;
   - installs git, ca-certificates, curl, ripgrep and fd;
   - installs the Pi coding agent globally;
   - marks `/workspace` as a safe git directory, because the mounted project is owned by the host user;
   - uses `/workspace` as its working directory and runs Pi as its entry point.
-- If `.pico/.gitignore` is missing, it writes one that ignores `pi/sessions/`.
+- If `.pide/.gitignore` is missing, it writes one that ignores `pi/sessions/`.
 - Leaves existing files untouched.
 - Transitions to `CHECK_CONFIG`.
 
 ### Check Config
-- Reads `.pico/pi/models.json` and `.pico/pi/settings.json`.
+- Reads `.pide/pi/models.json` and `.pide/pi/settings.json`.
 - If both files exist, define a provider with a server URL, and name a default model belonging to that provider, it records the URL and model and transitions to `ENSURE_PROMPT`.
 - If either file is missing, unreadable or incomplete, it informs the user that setup is needed and transitions to `ENTER_HOST`.
 
@@ -63,17 +63,17 @@ Pico quickly sets up a containerised development environment for a code project.
 
 ### Save Config
 - Derives the URL the container uses to reach the server: `localhost` and `127.0.0.1` are replaced with `host.docker.internal`.
-- Writes `.pico/pi/models.json` with a single provider. The provider uses the container URL, the OpenAI-compatible completions API and a placeholder API key, has developer-role messages disabled (which Ollama requires), and has zero cost for the selected model.
-- Writes `.pico/pi/settings.json`, making that provider and model the defaults.
+- Writes `.pide/pi/models.json` with a single provider. The provider uses the container URL, the OpenAI-compatible completions API and a placeholder API key, has developer-role messages disabled (which Ollama requires), and has zero cost for the selected model.
+- Writes `.pide/pi/settings.json`, making that provider and model the defaults.
 - Transitions to `ENSURE_PROMPT`.
 
 ### Ensure Prompt
-- Checks for `.pico/pi/prompts/containerfile.md`.
+- Checks for `.pide/pi/prompts/containerfile.md`.
 - If it is missing, it writes the prompt behind the `/containerfile` slash command. The prompt instructs Pi to:
   - inspect the project's manifests, lockfiles and toolchain files (for example `Cargo.toml`, `package.json`, `pyproject.toml`, `go.mod`, `.tool-versions`);
-  - add the toolchains, system packages and tools the project needs to `.pico/Containerfile`, keeping the base layers that Pi depends on;
+  - add the toolchains, system packages and tools the project needs to `.pide/Containerfile`, keeping the base layers that Pi depends on;
   - match versions the project already declares;
-  - tell the user to exit and run pico again so the image is rebuilt.
+  - tell the user to exit and run pide again so the image is rebuilt.
 - Leaves an existing prompt untouched, so the user can customise it.
 - Transitions to `BUILD_IMAGE`.
 
@@ -87,7 +87,7 @@ Pico quickly sets up a containerised development environment for a code project.
 
 ### Launch
 - Runs the image as an interactive container, using a terminal when one is attached, and removes the container when it exits.
-- Mounts the target folder at `/workspace` and `.pico/pi` as Pi's agent configuration folder.
+- Mounts the target folder at `/workspace` and `.pide/pi` as Pi's agent configuration folder.
 - Maps `host.docker.internal` to the host so the container can reach the LLM server.
 - Passes the host's git author and committer name and email to the container.
 - Disables Pi's telemetry and update check.
