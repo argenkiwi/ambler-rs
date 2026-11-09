@@ -109,6 +109,7 @@ The [`.agents/skills`](.agents/skills) directory holds step-by-step guides for c
 
 ## Projects built with ambler
 
+- [azk](https://github.com/argenkiwi/azk): a CLI for agents to follow the Zettelkasten note-taking methodology.
 - [PiDE](https://github.com/argenkiwi/pide): a containerised Pi coding agent backed by a local LLM.
 
 ## Limitations
