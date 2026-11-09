@@ -107,6 +107,10 @@ The [`.agents/skills`](.agents/skills) directory holds step-by-step guides for c
 | `ambler-walk` | Wire nodes into a new walk and spec |
 | `ambler-spec` | Write a walk's Markdown spec |
 
+## Projects built with ambler
+
+- [PiDE](https://github.com/argenkiwi/pide): a containerised Pi coding agent backed by a local LLM.
+
 ## Limitations
 
 The traits use native `async fn`, which is not `dyn`-compatible. Every walk is a concrete type, so graphs assembled at runtime from arbitrary nodes are not supported.
