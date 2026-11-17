@@ -2,6 +2,7 @@
 name = "ambler"
 version = "0.1.0"
 edition = "2024"
+default-run = "ambler"
 rust-version = "1.85"
 license = "MIT"
 
