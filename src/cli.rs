@@ -3,7 +3,7 @@
 //! Cargo runs `cargo-ambler ambler <verb> …` for `cargo ambler <verb> …`, so a leading `ambler`
 //! argument is dropped; the binary also runs directly as `cargo-ambler <verb> …`.
 
-use cargo_ambler::walks::{self, Error};
+use crate::walks::{self, Error};
 use std::process::ExitCode;
 
 const HELP: &str = "cargo ambler: scaffolds and checks Ambler projects (Ambler Tooling Protocol)
@@ -17,9 +17,10 @@ usage:
 exit codes: 0 success, 1 a check failed or the thing to create already exists, 2 invalid
 arguments or an unexpected error";
 
-#[tokio::main]
-async fn main() -> ExitCode {
-    let mut args: Vec<String> = std::env::args().skip(1).collect();
+/// Runs the CLI for `args` (the command line without the program name) and returns the exit
+/// code of the Ambler Tooling Protocol. Embed it in a project-local binary, such as an `xtask`,
+/// to run `cargo ambler` with nothing installed on the PATH.
+pub async fn run(mut args: Vec<String>) -> ExitCode {
     if args.first().is_some_and(|arg| arg == "ambler") {
         args.remove(0);
     }

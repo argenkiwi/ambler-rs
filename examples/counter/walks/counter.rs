@@ -6,7 +6,7 @@ use crate::nodes::HasCount;
 use crate::nodes::count::{self, Count};
 use crate::nodes::start::{self, Start};
 use crate::nodes::stop::{self, Stop};
-use crate::{Node, Transition, Walk};
+use ambler::{Node, Transition, Walk};
 
 /// What can stop the walk early. Only the start node can fail.
 pub type Error = start::Error;
