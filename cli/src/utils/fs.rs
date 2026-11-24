@@ -1,0 +1,93 @@
+//! File system access, relative to the current directory.
+
+use std::collections::BTreeMap;
+use std::io;
+use std::path::Path;
+
+/// Whether anything exists at `path`.
+#[must_use]
+pub fn exists(path: &str) -> bool {
+    Path::new(path).exists()
+}
+
+/// The name of the current folder, if it has one.
+#[must_use]
+pub fn current_folder_name() -> Option<String> {
+    std::env::current_dir()
+        .ok()?
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+}
+
+/// The names of the entries in the folder at `path`.
+///
+/// # Errors
+///
+/// Returns the I/O error if the folder cannot be read.
+pub fn entries(path: &str) -> io::Result<Vec<String>> {
+    std::fs::read_dir(path)?
+        .map(|entry| entry.map(|e| e.file_name().to_string_lossy().into_owned()))
+        .collect()
+}
+
+/// Reads the file at `path`.
+///
+/// # Errors
+///
+/// Returns the I/O error if the file is missing or cannot be read as UTF-8.
+pub fn read(path: &str) -> io::Result<String> {
+    std::fs::read_to_string(path)
+}
+
+/// Writes `contents` to `path`, creating the folders above it.
+///
+/// # Errors
+///
+/// Returns the I/O error if a folder or the file cannot be written.
+pub fn write(path: &str, contents: &str) -> io::Result<()> {
+    create_parent(path)?;
+    std::fs::write(path, contents)
+}
+
+fn create_parent(path: &str) -> io::Result<()> {
+    match Path::new(path).parent() {
+        Some(parent) if !parent.as_os_str().is_empty() => std::fs::create_dir_all(parent),
+        _ => Ok(()),
+    }
+}
+
+/// The files `cargo ambler check` looks at, keyed by `/`-separated path: `Cargo.toml`, every `.rs`
+/// under `src/` and every `.md` under `specs/`.
+///
+/// Files and folders that do not exist are skipped: it is the linter's job to say what is
+/// missing.
+///
+/// # Errors
+///
+/// Returns the I/O error if a folder or file that exists cannot be read.
+pub fn read_project() -> io::Result<BTreeMap<String, String>> {
+    let mut files = BTreeMap::new();
+    if exists("Cargo.toml") {
+        files.insert("Cargo.toml".to_string(), read("Cargo.toml")?);
+    }
+    collect("src", "rs", &mut files)?;
+    collect("specs", "md", &mut files)?;
+    Ok(files)
+}
+
+fn collect(folder: &str, extension: &str, files: &mut BTreeMap<String, String>) -> io::Result<()> {
+    if !Path::new(folder).is_dir() {
+        return Ok(());
+    }
+    for entry in std::fs::read_dir(folder)? {
+        let entry = entry?;
+        let path = format!("{folder}/{}", entry.file_name().to_string_lossy());
+        if entry.file_type()?.is_dir() {
+            collect(&path, extension, files)?;
+        } else if Path::new(&path).extension().is_some_and(|e| e == extension) {
+            let contents = read(&path)?;
+            files.insert(path, contents);
+        }
+    }
+    Ok(())
+}

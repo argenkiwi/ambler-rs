@@ -87,6 +87,20 @@ notes/              Design notes (Zettelkasten, Markdown source of truth)
 .agents/skills/     Agent skills for creating nodes, utils, tests, walks and specs
 ```
 
+## Command line: `cargo ambler`
+
+The `cli/` crate is the Rust implementation of the Ambler Tooling Protocol, the command line that [amble](https://github.com/argenkiwi/amble) hands `node`, `walk`, `util` and `check` to:
+
+```sh
+cargo install --git https://github.com/argenkiwi/ambler-rs cargo-ambler
+cargo ambler node ask --outcomes answered --state answer:String
+cargo ambler walk chat --nodes start,ask
+cargo ambler util journal
+cargo ambler check            # conventions, rustfmt, clippy, tests
+```
+
+Exit codes: 0 success, 1 a check failed or the thing to create already exists, 2 invalid arguments or not an Ambler project.
+
 ## Development
 
 ```bash
