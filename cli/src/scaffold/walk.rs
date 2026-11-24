@@ -1,4 +1,4 @@
-//! What a walk is made of whatever the target: the edges `amble walk` is given, the checks that
+//! What a walk is made of whatever the target: the edges `ambler walk` is given, the checks that
 //! they fit the nodes, and the spec it starts.
 
 use super::names;
