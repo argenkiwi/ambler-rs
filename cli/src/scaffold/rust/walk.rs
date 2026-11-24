@@ -8,7 +8,7 @@ use crate::scaffold::walk::{self as shared, Wired};
 pub use crate::scaffold::walk::{Edge, parse_edge};
 use std::collections::BTreeSet;
 
-/// What `amble walk` was asked for, with what it read from the project.
+/// What `ambler walk` was asked for, with what it read from the project.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct WalkSpec {
     /// The module name, `snake_case`.

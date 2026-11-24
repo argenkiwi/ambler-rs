@@ -10,7 +10,7 @@ const COPY: &[&str] = &[
     "u64", "u128", "usize",
 ];
 
-/// What `amble node` was asked for.
+/// What `ambler node` was asked for.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NodeSpec {
     /// The module name, `snake_case`.

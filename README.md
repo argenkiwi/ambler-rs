@@ -12,7 +12,7 @@ A program is a set of small **nodes** joined into a **walk**. Each node does one
 Requires Rust 1.85 or later.
 
 ```bash
-cargo run
+cargo run --bin ambler-counter
 ```
 
 The program asks for a starting number, counts up once a second, and stops at random. Invalid input sends the walk back to the start. See [`specs/counter.md`](specs/counter.md) for the behaviour it implements.
@@ -89,7 +89,7 @@ notes/              Design notes (Zettelkasten, Markdown source of truth)
 
 ## Command line: `cargo ambler`
 
-The `cli/` crate is the Rust implementation of the Ambler Tooling Protocol, the command line that [amble](https://github.com/argenkiwi/amble) hands `node`, `walk`, `util` and `check` to:
+The `cli/` crate is the Rust implementation of the Ambler Tooling Protocol, the command line that [ambler](https://github.com/argenkiwi/ambler) hands `node`, `walk`, `util` and `check` to:
 
 ```sh
 cargo install --git https://github.com/argenkiwi/ambler-rs cargo-ambler
