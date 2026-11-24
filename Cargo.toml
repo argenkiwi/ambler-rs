@@ -5,6 +5,10 @@ edition = "2024"
 rust-version = "1.85"
 license = "MIT"
 
+[[bin]]
+name = "ambler-counter"
+path = "src/main.rs"
+
 [dependencies]
 rand = "0.9"
 thiserror = "2"

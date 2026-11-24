@@ -14,7 +14,7 @@ pub fn crate_name(cargo_toml: &str) -> Option<String> {
         })
 }
 
-/// A new project as `amble new app` writes it, for the linter's tests: the files the conventions
+/// A new project as `ambler new app` writes it, for the linter's tests: the files the conventions
 /// are checked on, with the counter example if `example`.
 #[cfg(test)]
 pub(crate) fn fixture(example: bool) -> std::collections::BTreeMap<String, String> {
