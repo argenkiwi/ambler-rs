@@ -1,5 +1,5 @@
-use crate::Node;
 use crate::nodes::HasCount;
+use ambler::Node;
 use std::convert::Infallible;
 
 pub trait Utils {

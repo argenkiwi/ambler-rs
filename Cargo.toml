@@ -4,15 +4,29 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
 license = "MIT"
+description = "The native Ambler Tooling Protocol CLI for Rust: `cargo ambler node|walk|util|check`"
+
+[lib]
+name = "ambler"
+path = "src/lib.rs"
 
 [[bin]]
-name = "ambler-counter"
+name = "cargo-ambler"
 path = "src/main.rs"
 
 [dependencies]
-rand = "0.9"
+proc-macro2 = { version = "1", features = ["span-locations"] }
+syn = { version = "2", features = ["full", "visit"] }
 thiserror = "2"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+[dev-dependencies]
+rand = "0.9"
 tokio = { version = "1", features = ["time", "macros", "rt-multi-thread"] }
+
+[[example]]
+name = "counter"
+path = "examples/counter/main.rs"
 
 [lints.rust]
 unsafe_code = "forbid"

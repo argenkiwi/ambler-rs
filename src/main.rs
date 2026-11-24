@@ -1,8 +1,8 @@
-//! The program this branch builds: runs its primary walk.
-//!
-//! Run with `cargo run`. Additional walks get their own `src/bin/<name>.rs`.
+//! The `cargo-ambler` binary: a thin shim over [`ambler::cli::run`].
+
+use std::process::ExitCode;
 
 #[tokio::main]
-async fn main() -> Result<(), ambler::walks::counter::Error> {
-    ambler::walks::counter::run().await
+async fn main() -> ExitCode {
+    ambler::cli::run(std::env::args().skip(1).collect()).await
 }
