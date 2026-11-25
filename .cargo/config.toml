@@ -1,0 +1,3 @@
+# `cargo ambler <verb>` runs this package's own CLI from source: nothing to install.
+[alias]
+ambler = "run --quiet --bin cargo-ambler --"
