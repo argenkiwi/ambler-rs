@@ -28,7 +28,7 @@ pub(crate) fn fixture(example: bool) -> std::collections::BTreeMap<String, Strin
     let mut put = |path: &str, contents: String| files.insert(path.to_string(), contents);
     put(
         "Cargo.toml",
-        named(include_str!("../../../templates/rust/Cargo.toml")).replace("{{extra}}", extra),
+        named(include_str!("../../../templates/rust/Cargo.toml.tmpl")).replace("{{extra}}", extra),
     );
     put(
         "src/lib.rs",
