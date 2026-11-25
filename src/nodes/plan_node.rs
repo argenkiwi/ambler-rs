@@ -1,9 +1,9 @@
 use crate::Node;
-use crate::nodes::{HasArgs, HasMessage, HasPlan};
+use crate::nodes::{HasArgs, HasExitCode, HasMessage, HasPlan};
 use crate::scaffold::rust::node::{NodeSpec, has_trait, node, shorten, trait_name};
 use crate::scaffold::rust::register::{add_use, append, register};
 use crate::scaffold::rust::source::state_traits;
-use crate::scaffold::{Change, Plan, args, names};
+use crate::scaffold::{Change, Plan, Rejection, args, names};
 use crate::utils::fs;
 use std::convert::Infallible;
 use std::io;
@@ -60,14 +60,16 @@ impl<U> PlanNode<U> {
 }
 
 impl<U: Utils> PlanNode<U> {
-    fn plan(&self, args: &[String]) -> Result<Plan, String> {
+    fn plan(&self, args: &[String]) -> Result<Plan, Rejection> {
         let parsed = args::parse(args, &["outcomes", "state"], &["terminal", "fallible"])
             .map_err(|e| format!("{e}\n{USAGE}"))?;
         let [name] = parsed.positionals.as_slice() else {
-            return Err(USAGE.to_string());
+            return Err(Rejection::Invalid(USAGE.to_string()));
         };
         if !names::is_snake(name) {
-            return Err(format!("`{name}` is not a node name: use snake_case"));
+            return Err(Rejection::Invalid(format!(
+                "`{name}` is not a node name: use snake_case"
+            )));
         }
         let outcomes: Vec<String> = parsed
             .list("outcomes")
@@ -75,24 +77,27 @@ impl<U: Utils> PlanNode<U> {
             .map(names::pascal)
             .collect();
         if outcomes.is_empty() != parsed.has("terminal") {
-            return Err(format!(
+            return Err(Rejection::Invalid(format!(
                 "say what the node reports: `--outcomes <a,b>`, or `--terminal` if it ends the \
                  walk\n{USAGE}"
-            ));
+            )));
         }
         if let Some(outcome) = outcomes.iter().find(|outcome| !names::is_pascal(outcome)) {
-            return Err(format!("`{outcome}` is not an outcome name"));
+            return Err(Rejection::Invalid(format!(
+                "`{outcome}` is not an outcome name"
+            )));
         }
 
         let path = format!("src/nodes/{name}.rs");
         if self.utils.exists(&path) {
-            return Err(format!("{path} already exists"));
+            return Err(Rejection::Exists(format!("{path} already exists")));
         }
         let modules = self.utils.read(MODULES).map_err(|_| {
             format!("{MODULES} not found: run this from the root of an Ambler project")
         })?;
-        let mut modules = register(&modules, name)
-            .ok_or_else(|| format!("`{name}` is already registered in {MODULES}"))?;
+        let mut modules = register(&modules, name).ok_or_else(|| {
+            Rejection::Exists(format!("`{name}` is already registered in {MODULES}"))
+        })?;
 
         // `--state field` reuses a trait; `--state field:Type` declares a new one.
         let known = state_traits(&modules).map_err(|e| format!("{MODULES}: {e}"))?;
@@ -103,21 +108,23 @@ impl<U: Utils> PlanNode<U> {
                 None => (state.trim(), None),
             };
             if !names::is_snake(field) {
-                return Err(format!("`{field}` is not a field name: use snake_case"));
+                return Err(Rejection::Invalid(format!(
+                    "`{field}` is not a field name: use snake_case"
+                )));
             }
             let wanted = trait_name(field);
             let existing = known.iter().find(|item| item.name == wanted);
             match (existing, ty) {
                 (Some(item), None) => traits.push(item.clone()),
                 (Some(_), Some(_)) => {
-                    return Err(format!(
+                    return Err(Rejection::Exists(format!(
                         "`{wanted}` is already in {MODULES}: use `--state {field}`"
-                    ));
+                    )));
                 }
                 (None, None) => {
-                    return Err(format!(
+                    return Err(Rejection::Invalid(format!(
                         "no `{wanted}` in {MODULES}: give the type, `--state {field}:<Type>`"
-                    ));
+                    )));
                 }
                 (None, Some(ty)) => {
                     // `crate::board::Board` is declared as `Board`, imported in mod.rs.
@@ -158,7 +165,7 @@ impl<U: Utils> PlanNode<U> {
 
 impl<S, U> Node<S> for PlanNode<U>
 where
-    S: HasArgs + HasPlan + HasMessage + Send,
+    S: HasArgs + HasPlan + HasMessage + HasExitCode + Send,
     U: Utils + Sync,
 {
     type Outcome = Outcome;
@@ -170,8 +177,9 @@ where
                 *state.plan_mut() = plan;
                 Outcome::Planned
             }
-            Err(message) => {
-                *state.message_mut() = Some(message);
+            Err(rejection) => {
+                *state.exit_code_mut() = rejection.exit_code();
+                *state.message_mut() = Some(rejection.into_message());
                 Outcome::Rejected
             }
         })
@@ -366,6 +374,32 @@ mod tests {
             rejection(&nowhere, &["ask", "--terminal"])
                 .await
                 .contains("root of an Ambler project")
+        );
+    }
+    /// The exit code a rejection of `args` records.
+    async fn exit_code(fake: &Fake, args: &[&str]) -> u8 {
+        let (outcome, state) = run(fake, args).await;
+        assert_eq!(outcome, Outcome::Rejected, "{args:?}");
+        state.exit_code
+    }
+
+    #[tokio::test]
+    async fn records_exit_code_1_for_what_already_exists_and_2_otherwise() {
+        let fake = Fake::with_files(&[PROJECT[0], ("src/nodes/ask.rs", "")]);
+
+        for (args, code) in [
+            (&["ask", "--terminal"][..], 1),
+            (&["stop", "--terminal"][..], 1),
+            (&["tell", "--terminal", "--state", "count:i64"][..], 1),
+            (&[][..], 2),
+            (&["Tell", "--terminal"][..], 2),
+            (&["tell", "--terminal", "--state", "total"][..], 2),
+        ] {
+            assert_eq!(exit_code(&fake, args).await, code, "{args:?}");
+        }
+        assert_eq!(
+            exit_code(&Fake::default(), &["tell", "--terminal"]).await,
+            2
         );
     }
 }

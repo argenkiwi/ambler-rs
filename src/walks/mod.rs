@@ -1,11 +1,10 @@
-//! Walks: one per verb, each a small state machine of nodes.
+//! Walks: `cli`, the state machine of nodes behind every verb.
 
-pub mod check;
-pub mod node;
-pub mod util;
-pub mod walk;
+pub mod cli;
 
-use crate::nodes::{HasArgs, HasMessage, HasPlan, inspect, verify, write};
+use crate::nodes::{
+    HasArgs, HasExitCode, HasLintOnly, HasMessage, HasPlan, inspect, verify, write,
+};
 use crate::scaffold::Plan;
 
 /// Why a verb did not complete. Each maps to an exit code of the Ambler Tooling Protocol.
@@ -41,12 +40,14 @@ impl Error {
     }
 }
 
-/// The state every verb's walk shares.
+/// The state of the `cli` walk.
 #[derive(Clone, Debug, Default)]
 pub(crate) struct State {
     pub args: Vec<String>,
+    pub lint_only: bool,
     pub plan: Plan,
     pub message: Option<String>,
+    pub exit_code: u8,
 }
 
 impl State {
@@ -61,29 +62,32 @@ impl State {
     pub fn with_args(args: &[&str]) -> Self {
         Self::new(args.iter().map(ToString::to_string).collect())
     }
-
-    /// A scaffolding walk that left a message was rejected, and has reported it. Creating what
-    /// already exists is a failure (exit code 1); anything else is a bad invocation (2).
-    fn finish(self) -> Result<(), Error> {
-        match self.message {
-            Some(message) if message.contains("already") => Err(Error::Failed),
-            Some(_) => Err(Error::Rejected),
-            None => Ok(()),
-        }
-    }
-
-    /// A check that left a message failed, and has reported it.
-    fn finish_check(self) -> Result<(), Error> {
-        match self.message {
-            Some(_) => Err(Error::Failed),
-            None => Ok(()),
-        }
-    }
 }
 
 impl HasArgs for State {
     fn args(&self) -> &[String] {
         &self.args
+    }
+    fn args_mut(&mut self) -> &mut Vec<String> {
+        &mut self.args
+    }
+}
+
+impl HasLintOnly for State {
+    fn lint_only(&self) -> bool {
+        self.lint_only
+    }
+    fn lint_only_mut(&mut self) -> &mut bool {
+        &mut self.lint_only
+    }
+}
+
+impl HasExitCode for State {
+    fn exit_code(&self) -> u8 {
+        self.exit_code
+    }
+    fn exit_code_mut(&mut self) -> &mut u8 {
+        &mut self.exit_code
     }
 }
 

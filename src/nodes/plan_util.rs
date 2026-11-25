@@ -1,7 +1,7 @@
 use crate::Node;
-use crate::nodes::{HasArgs, HasMessage, HasPlan};
+use crate::nodes::{HasArgs, HasExitCode, HasMessage, HasPlan};
 use crate::scaffold::rust::register::register;
-use crate::scaffold::{Change, Plan, args, names};
+use crate::scaffold::{Change, Plan, Rejection, args, names};
 use crate::utils::fs;
 use std::convert::Infallible;
 use std::io;
@@ -57,23 +57,26 @@ impl<U> PlanUtil<U> {
 }
 
 impl<U: Utils> PlanUtil<U> {
-    fn plan(&self, args: &[String]) -> Result<Plan, String> {
+    fn plan(&self, args: &[String]) -> Result<Plan, Rejection> {
         let parsed = args::parse(args, &[], &[]).map_err(|e| format!("{e}\n{USAGE}"))?;
         let [name] = parsed.positionals.as_slice() else {
-            return Err(USAGE.to_string());
+            return Err(Rejection::Invalid(USAGE.to_string()));
         };
         if !names::is_snake(name) {
-            return Err(format!("`{name}` is not a module name: use snake_case"));
+            return Err(Rejection::Invalid(format!(
+                "`{name}` is not a module name: use snake_case"
+            )));
         }
         let path = format!("src/utils/{name}.rs");
         if self.utils.exists(&path) {
-            return Err(format!("{path} already exists"));
+            return Err(Rejection::Exists(format!("{path} already exists")));
         }
         let modules = self.utils.read(MODULES).map_err(|_| {
             format!("{MODULES} not found: run this from the root of an Ambler project")
         })?;
-        let modules = register(&modules, name)
-            .ok_or_else(|| format!("`{name}` is already registered in {MODULES}"))?;
+        let modules = register(&modules, name).ok_or_else(|| {
+            Rejection::Exists(format!("`{name}` is already registered in {MODULES}"))
+        })?;
         Ok(Plan {
             changes: vec![
                 Change::write(path, "//! TODO: say what side effects this module wraps.\n"),
@@ -89,7 +92,7 @@ impl<U: Utils> PlanUtil<U> {
 
 impl<S, U> Node<S> for PlanUtil<U>
 where
-    S: HasArgs + HasPlan + HasMessage + Send,
+    S: HasArgs + HasPlan + HasMessage + HasExitCode + Send,
     U: Utils + Sync,
 {
     type Outcome = Outcome;
@@ -101,8 +104,9 @@ where
                 *state.plan_mut() = plan;
                 Outcome::Planned
             }
-            Err(message) => {
-                *state.message_mut() = Some(message);
+            Err(rejection) => {
+                *state.exit_code_mut() = rejection.exit_code();
+                *state.message_mut() = Some(rejection.into_message());
                 Outcome::Rejected
             }
         })
@@ -160,5 +164,27 @@ mod tests {
 
         assert_eq!(outcome, Outcome::Rejected);
         assert!(state.message.unwrap().contains("root of an Ambler project"));
+    }
+    /// The exit code a rejection of `args` records.
+    async fn exit_code(fake: &Fake, args: &[&str]) -> u8 {
+        let (outcome, state) = run(fake, args).await;
+        assert_eq!(outcome, Outcome::Rejected, "{args:?}");
+        state.exit_code
+    }
+
+    #[tokio::test]
+    async fn records_exit_code_1_for_what_already_exists_and_2_otherwise() {
+        let fake =
+            Fake::with_files(&[(MODULES, "pub mod terminal;\n"), ("src/utils/clock.rs", "")]);
+
+        for (args, code) in [
+            (&["clock"][..], 1),
+            (&["terminal"][..], 1),
+            (&[][..], 2),
+            (&["Journal"][..], 2),
+        ] {
+            assert_eq!(exit_code(&fake, args).await, code, "{args:?}");
+        }
+        assert_eq!(exit_code(&Fake::default(), &["journal"]).await, 2);
     }
 }
