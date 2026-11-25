@@ -1,6 +1,6 @@
 //! Test doubles shared by the node and walk tests: one fake for every node's `Utils`.
 
-use crate::nodes::{inspect, plan_node, plan_util, plan_walk, report, verify, write};
+use crate::nodes::{help, inspect, plan_node, plan_util, plan_walk, report, verify, write};
 use std::collections::BTreeMap;
 use std::io;
 use std::sync::Mutex;
@@ -130,6 +130,12 @@ impl write::Utils for &Fake {
 impl report::Utils for &Fake {
     fn eprint(&self, message: &str) {
         Fake::eprint(self, message);
+    }
+}
+
+impl help::Utils for &Fake {
+    fn print(&self, message: &str) {
+        Fake::print(self, message);
     }
 }
 

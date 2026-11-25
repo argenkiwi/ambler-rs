@@ -1,10 +1,10 @@
 use crate::Node;
-use crate::nodes::{HasArgs, HasMessage, HasPlan};
+use crate::nodes::{HasArgs, HasExitCode, HasMessage, HasPlan};
 use crate::scaffold::rust::project::crate_name;
 use crate::scaffold::rust::register::register;
 use crate::scaffold::rust::source::{node_info, state_traits};
 use crate::scaffold::rust::walk::{WalkSpec, parse_edge, runner, spec_md, validate, walk};
-use crate::scaffold::{Change, Plan, args, names};
+use crate::scaffold::{Change, Plan, Rejection, args, names};
 use crate::utils::fs;
 use std::convert::Infallible;
 use std::io;
@@ -68,20 +68,22 @@ impl<U: Utils> PlanWalk<U> {
             .map_err(|_| format!("{path} not found: run this from the root of an Ambler project"))
     }
 
-    fn plan(&self, args: &[String]) -> Result<Plan, String> {
+    fn plan(&self, args: &[String]) -> Result<Plan, Rejection> {
         let parsed = args::parse(args, &["nodes", "edge"], &["no-runner"])
             .map_err(|e| format!("{e}\n{USAGE}"))?;
         let [name] = parsed.positionals.as_slice() else {
-            return Err(USAGE.to_string());
+            return Err(Rejection::Invalid(USAGE.to_string()));
         };
         if !names::is_snake(name) {
-            return Err(format!("`{name}` is not a walk name: use snake_case"));
+            return Err(Rejection::Invalid(format!(
+                "`{name}` is not a walk name: use snake_case"
+            )));
         }
         let nodes = parsed.list("nodes");
         if nodes.is_empty() {
-            return Err(format!(
+            return Err(Rejection::Invalid(format!(
                 "name the nodes to wire, starting node first\n{USAGE}"
-            ));
+            )));
         }
         let edges = parsed
             .list("edge")
@@ -91,10 +93,11 @@ impl<U: Utils> PlanWalk<U> {
 
         let path = format!("src/walks/{name}.rs");
         if self.utils.exists(&path) {
-            return Err(format!("{path} already exists"));
+            return Err(Rejection::Exists(format!("{path} already exists")));
         }
-        let modules = register(&self.read(MODULES)?, name)
-            .ok_or_else(|| format!("`{name}` is already registered in {MODULES}"))?;
+        let modules = register(&self.read(MODULES)?, name).ok_or_else(|| {
+            Rejection::Exists(format!("`{name}` is already registered in {MODULES}"))
+        })?;
         let traits = state_traits(&self.read(NODES)?).map_err(|e| format!("{NODES}: {e}"))?;
 
         let missing: Vec<&str> = nodes
@@ -107,10 +110,10 @@ impl<U: Utils> PlanWalk<U> {
                 .iter()
                 .map(|node| format!("  cargo ambler node {node} (--outcomes <a,b> | --terminal)"))
                 .collect();
-            return Err(format!(
+            return Err(Rejection::Invalid(format!(
                 "these nodes do not exist yet; create them first:\n{}",
                 commands.join("\n")
-            ));
+            )));
         }
         let nodes = nodes
             .into_iter()
@@ -144,9 +147,9 @@ impl<U: Utils> PlanWalk<U> {
             let bin = format!("src/bin/{name}.rs");
             let runner_path = if self.utils.exists(&main) { bin } else { main };
             if self.utils.exists(&runner_path) {
-                return Err(format!(
+                return Err(Rejection::Exists(format!(
                     "{runner_path} already exists; pass `--no-runner` to keep it"
-                ));
+                )));
             }
             run_with = if runner_path == "src/main.rs" {
                 "`cargo run`".to_string()
@@ -167,7 +170,7 @@ impl<U: Utils> PlanWalk<U> {
 
 impl<S, U> Node<S> for PlanWalk<U>
 where
-    S: HasArgs + HasPlan + HasMessage + Send,
+    S: HasArgs + HasPlan + HasMessage + HasExitCode + Send,
     U: Utils + Sync,
 {
     type Outcome = Outcome;
@@ -179,8 +182,9 @@ where
                 *state.plan_mut() = plan;
                 Outcome::Planned
             }
-            Err(message) => {
-                *state.message_mut() = Some(message);
+            Err(rejection) => {
+                *state.exit_code_mut() = rejection.exit_code();
+                *state.message_mut() = Some(rejection.into_message());
                 Outcome::Rejected
             }
         })
@@ -375,5 +379,32 @@ mod tests {
                 .await
                 .contains("root of an Ambler project")
         );
+    }
+    /// The exit code a rejection of `args` records.
+    async fn exit_code(fake: &Fake, args: &[&str]) -> u8 {
+        let (outcome, state) = run(fake, args).await;
+        assert_eq!(outcome, Outcome::Rejected, "{args:?}");
+        state.exit_code
+    }
+
+    #[tokio::test]
+    async fn records_exit_code_1_for_what_already_exists_and_2_otherwise() {
+        let mut files = PROJECT.to_vec();
+        files.push(("src/walks/counter.rs", ""));
+        assert_eq!(exit_code(&Fake::with_files(&files), ARGS).await, 1);
+
+        let mut files = PROJECT.to_vec();
+        files.push(("src/main.rs", ""));
+        files.push(("src/bin/counter.rs", ""));
+        files.push(("Cargo.toml", "[package]\nname = \"app\"\n"));
+        assert_eq!(exit_code(&Fake::with_files(&files), ARGS).await, 1);
+
+        let fake = Fake::with_files(PROJECT);
+        assert_eq!(exit_code(&fake, &[]).await, 2);
+        assert_eq!(
+            exit_code(&fake, &["counter", "--nodes", "start,ask"]).await,
+            2
+        );
+        assert_eq!(exit_code(&Fake::default(), ARGS).await, 2);
     }
 }

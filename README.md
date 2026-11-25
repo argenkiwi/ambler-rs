@@ -89,8 +89,9 @@ Then `walk.run(Id::Start, &mut state).await` steps until a node halts. The compl
 
 ```text
 src/engine.rs       Node and Walk traits, Transition (re-exported from the crate root)
-src/cli.rs          `ambler::cli::run`, the CLI dispatcher; src/main.rs is the `cargo-ambler` shim
-src/walks/          The CLI's walks: node, walk, util, check (specs/ describes each)
+src/cli.rs          `ambler::cli::run`, re-exporting the `cli` walk for xtask crates
+src/walks/cli.rs    The CLI: one walk that routes each verb to its nodes (specs/cli.md);
+                    src/main.rs, the `cargo-ambler` binary, runs it
 src/nodes/          The CLI's nodes
 src/scaffold/       Generators and linters for Ambler projects
 examples/counter/   Example walk with its nodes, utils and spec

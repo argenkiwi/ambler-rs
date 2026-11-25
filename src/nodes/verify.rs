@@ -1,5 +1,5 @@
 use crate::Node;
-use crate::nodes::HasMessage;
+use crate::nodes::{HasExitCode, HasMessage};
 use crate::utils::process;
 use std::io;
 
@@ -70,7 +70,7 @@ impl<U> Verify<U> {
 
 impl<S, U> Node<S> for Verify<U>
 where
-    S: HasMessage + Send,
+    S: HasMessage + HasExitCode + Send,
     U: Utils + Sync,
 {
     type Outcome = Outcome;
@@ -85,6 +85,7 @@ where
                 source,
             })?;
             if !passed {
+                *state.exit_code_mut() = 1;
                 *state.message_mut() = Some(format!("`{command}` failed"));
                 return Ok(Outcome::Failed);
             }
@@ -128,6 +129,7 @@ mod tests {
         let outcome = Verify::with_utils(&fake).run(&mut state).await.unwrap();
 
         assert_eq!(outcome, Outcome::Failed);
+        assert_eq!(state.exit_code, 1);
         assert_eq!(fake.printed().len(), 2);
         assert_eq!(
             state.message.as_deref(),

@@ -1,5 +1,5 @@
 use crate::Node;
-use crate::nodes::HasMessage;
+use crate::nodes::{HasExitCode, HasMessage};
 use crate::scaffold::lint;
 use crate::utils::fs;
 use std::collections::BTreeMap;
@@ -61,7 +61,7 @@ impl<U> Inspect<U> {
 
 impl<S, U> Node<S> for Inspect<U>
 where
-    S: HasMessage + Send,
+    S: HasMessage + HasExitCode + Send,
     U: Utils + Sync,
 {
     type Outcome = Outcome;
@@ -75,6 +75,7 @@ where
         Ok(match violations.len() {
             0 => Outcome::Clean,
             count => {
+                *state.exit_code_mut() = 1;
                 *state.message_mut() = Some(format!(
                     "{count} convention violation{}; see the conventions in the project's AGENTS.md",
                     if count == 1 { "" } else { "s" }
@@ -119,6 +120,7 @@ mod tests {
         let outcome = Inspect::with_utils(&fake).run(&mut state).await.unwrap();
 
         assert_eq!(outcome, Outcome::Violations);
+        assert_eq!(state.exit_code, 1);
         assert_eq!(
             fake.printed(),
             ["src/utils/clock.rs:1: registered: add `pub mod clock;` to src/utils/mod.rs"]
