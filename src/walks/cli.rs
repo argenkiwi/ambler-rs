@@ -123,8 +123,11 @@ where
                 verify::Outcome::Failed => Transition::Next(Id::Report),
             },
             Id::Help => {
-                let Ok(()) = self.help.run(state).await;
-                Transition::Halt
+                let Ok(outcome) = self.help.run(state).await;
+                match outcome {
+                    help::Outcome::Printed => Transition::Halt,
+                    help::Outcome::Unknown => Transition::Next(Id::Report),
+                }
             }
             Id::Report => {
                 let Ok(()) = self.report.run(state).await;
@@ -345,13 +348,35 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn help_prints_the_usage() {
+    async fn help_prints_the_general_guide() {
         let fake = Fake::default();
 
         let (_, result) = cli(&fake, &["--help"]).await;
 
         assert!(result.is_ok());
-        assert_eq!(fake.printed(), [USAGE]);
+        assert_eq!(fake.printed(), [crate::guides::guide("").unwrap()]);
+    }
+
+    #[tokio::test]
+    async fn help_prints_a_topic() {
+        let fake = Fake::default();
+
+        let (_, result) = cli(&fake, &["ambler", "help", "walk"]).await;
+
+        assert!(result.is_ok());
+        assert_eq!(fake.printed(), [crate::guides::guide("walk").unwrap()]);
+    }
+
+    #[tokio::test]
+    async fn help_for_an_unknown_topic_is_reported_and_exits_1() {
+        let fake = Fake::default();
+
+        let (state, result) = cli(&fake, &["help", "bogus"]).await;
+
+        assert!(matches!(result, Err(Error::Failed)));
+        assert_eq!(state.exit_code, 1);
+        assert!(fake.printed().is_empty());
+        assert_eq!(fake.eprinted().len(), 1);
     }
 
     #[tokio::test]

@@ -10,6 +10,7 @@ usage:
   cargo ambler walk <name> --nodes <start,next,...> [--edge <node>.<Outcome>=<node|halt>]... [--no-runner]
   cargo ambler util <name>
   cargo ambler check [--lint-only]
+  cargo ambler help [topic]
 
 exit codes: 0 success, 1 a check failed or the thing to create already exists, 2 invalid
 arguments or an unexpected error";
