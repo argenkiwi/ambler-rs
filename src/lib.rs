@@ -2,6 +2,7 @@
 
 pub mod cli;
 pub mod engine;
+pub mod guides;
 pub mod nodes;
 pub mod scaffold;
 #[cfg(test)]

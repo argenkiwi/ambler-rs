@@ -11,7 +11,7 @@ A program is a set of small **nodes** joined into a **walk**. Each node does one
 
 Requires Rust 1.85 or later.
 
-`ambler` is the native CLI of the Ambler Tooling Protocol for Rust: `cargo ambler node|walk|util|check`. Install it once, or add it to a project (see [Command line](#command-line-cargo-ambler)):
+`ambler` is the native CLI of the Ambler Tooling Protocol for Rust: `cargo ambler node|walk|util|check`, plus `cargo ambler help [topic]`, which prints the conventions (node design, testing, specs and each verb) for the version a project pins. Install it once, or add it to a project (see [Command line](#command-line-cargo-ambler)):
 
 ```bash
 cargo install --git https://github.com/argenkiwi/ambler-rs

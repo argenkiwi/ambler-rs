@@ -11,7 +11,7 @@ Exit codes: 0 on success, 1 if a check failed or the thing to create already exi
 - Drops a leading `ambler` argument, then takes the next argument as the verb and leaves the rest as the verb's arguments.
 - `node` transitions to `PLAN_NODE`, `walk` to `PLAN_WALK` and `util` to `PLAN_UTIL`.
 - `check` transitions to `INSPECT`, remembering whether `--lint-only` was given. Any other argument to `check` records the `check` usage as the reason and transitions to `REPORT`.
-- `help`, `--help` or `-h` transitions to `HELP`.
+- `help`, `--help` or `-h` leaves the rest as the topic and transitions to `HELP`.
 - No verb records the usage as the reason and transitions to `REPORT`. Any other verb records `Unknown command: <verb>` followed by the usage, and transitions to `REPORT`. Both exit 2.
 
 ### Plan Node
@@ -52,7 +52,9 @@ Exit codes: 0 on success, 1 if a check failed or the thing to create already exi
 - If a check command cannot be run the program fails with that error (exit 2).
 
 ### Help
-- Prints the usage of every verb and the exit codes on standard output, and terminates.
+- Usage: `help [topic]`.
+- Prints the guide for the topic on standard output, or the general guide (every verb, the topics and the exit codes) if there is no topic, and terminates.
+- If there is no guide for the topic, it records the known topics as the reason and transitions to `REPORT` (exit 1).
 
 ### Report
 - Prints the recorded reason on standard error and terminates. The program exits with the recorded exit code.
