@@ -1,6 +1,6 @@
 ---
 name: ambler-util
-description: Creates or extracts utility modules into the src/utils/ directory of an Ambler Rust project. Use this whenever a node's DefaultUtils needs external crates, contains logic reusable across multiple nodes, or has implementations too complex to inline — even if the user just says "add a util", "extract this helper", "share this function", "create a utility", or "this code is getting too long for the node". When a user creates a node that pulls in a new crate or has complex async logic, proactively suggest using this skill.
+description: Creates or extracts utility modules into the src/utils/ directory of an Ambler Rust project. Use this whenever a node's SystemUtils needs external crates, contains logic reusable across multiple nodes, or has implementations too complex to inline — even if the user just says "add a util", "extract this helper", "share this function", "create a utility", or "this code is getting too long for the node". When a user creates a node that pulls in a new crate or has complex async logic, proactively suggest using this skill.
 metadata:
   author: leandro
   version: "3.0-rust"

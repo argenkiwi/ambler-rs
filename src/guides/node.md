@@ -9,7 +9,7 @@ Writes `src/nodes/<name>.rs` and registers it in `src/nodes/mod.rs`. Run it from
 - `--terminal`: the node ends the walk; `type Outcome = ()`. Give exactly one of `--outcomes` and `--terminal`.
 - `--fallible`: adds a `thiserror` `Error` enum, seeded with an `Io` variant. Without it the node's error is `Infallible`.
 - `--state count`: the node needs the existing `HasCount` trait from `src/nodes/mod.rs`.
-- `--state name:String`: declares a new `HasName` trait there (a getter and `name_mut`) and requires it. Repeat `--state` for more fields.
+- `--state name:String`: declares a new `HasName` trait there (a getter and `name_mut`; delete `name_mut` if no node writes the field) and requires it. Repeat `--state` for more fields.
 - `--state board:crate::board::Board`: a type that is not in scope by default is given by its path. `src/nodes/mod.rs` imports it and the trait uses `Board`; tests and walks that hold the field import it too.
 
 What you get:
