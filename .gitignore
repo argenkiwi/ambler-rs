@@ -27,3 +27,4 @@
 # azk index (derived)
 .azk/
 /.claude
+/.pide
