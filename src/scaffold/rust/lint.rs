@@ -9,9 +9,34 @@ use crate::scaffold::names;
 use std::collections::BTreeMap;
 use syn::spanned::Spanned;
 use syn::visit::Visit;
-use syn::{ImplItem, Item, Visibility};
+use syn::{ImplItem, Item, ItemTrait, TraitItem, Visibility};
 
 const GROUPS: [&str; 3] = ["nodes", "walks", "utils"];
+
+/// The one module that declares the state traits.
+const REGISTRY: &str = "src/nodes/mod.rs";
+
+/// The field a state trait named `name` covers: `HasExitCode` → `exit_code`. `None` if `name` is
+/// not `Has` followed by an uppercase letter (`Hash` is not a state trait).
+fn state_field(name: &str) -> Option<String> {
+    let suffix = name.strip_prefix("Has")?;
+    suffix
+        .starts_with(|c: char| c.is_ascii_uppercase())
+        .then(|| names::snake(suffix))
+}
+
+/// Finds the state traits (`trait Has*`) declared anywhere in a file.
+#[derive(Default)]
+struct StateTraits(Vec<ItemTrait>);
+
+impl<'ast> Visit<'ast> for StateTraits {
+    fn visit_item_trait(&mut self, item: &'ast ItemTrait) {
+        if state_field(&item.ident.to_string()).is_some() {
+            self.0.push(item.clone());
+        }
+        syn::visit::visit_item_trait(self, item);
+    }
+}
 
 struct Linter<'a> {
     files: &'a BTreeMap<String, String>,
@@ -280,6 +305,65 @@ impl Linter<'_> {
             }
         }
     }
+
+    /// State traits are declared only in the registry, and each covers exactly one field: a
+    /// getter named after it and, optionally, its `_mut` accessor.
+    fn state_traits(&mut self) {
+        for (path, source) in self.files {
+            if !(path.starts_with("src/") && path.ends_with(".rs")) {
+                continue;
+            }
+            // A file that does not parse is reported as `parse` where it matters.
+            let Ok(file) = parse(source) else {
+                continue;
+            };
+            let mut found = StateTraits::default();
+            found.visit_file(&file);
+            for item in found.0 {
+                let name = item.ident.to_string();
+                let line = item.span().start().line;
+                if path != REGISTRY {
+                    self.report(
+                        path,
+                        line,
+                        "state-traits",
+                        format!("move `{name}` to {REGISTRY}: state traits live only there"),
+                    );
+                    continue;
+                }
+                let field = state_field(&name).unwrap_or_default();
+                let accessor = format!("{field}_mut");
+                let mut has_getter = false;
+                for member in &item.items {
+                    let extra = match member {
+                        TraitItem::Fn(method) if method.sig.ident == field => {
+                            has_getter = true;
+                            continue;
+                        }
+                        TraitItem::Fn(method) if method.sig.ident == accessor => continue,
+                        TraitItem::Fn(method) => format!("`fn {}`", method.sig.ident),
+                        _ => "anything but methods".to_string(),
+                    };
+                    self.report(
+                        path,
+                        member.span().start().line,
+                        "state-traits",
+                        format!(
+                            "`{name}` covers one field: `{field}` and optionally `{accessor}`, not {extra}"
+                        ),
+                    );
+                }
+                if !has_getter {
+                    self.report(
+                        path,
+                        line,
+                        "state-traits",
+                        format!("`{name}` needs a getter, `fn {field}(&self)`"),
+                    );
+                }
+            }
+        }
+    }
 }
 
 /// Checks the conventions over `files`: paths relative to the project root, with contents.
@@ -303,6 +387,7 @@ pub fn lint(files: &BTreeMap<String, String>) -> Vec<Violation> {
     for group in GROUPS {
         linter.modules(group);
     }
+    linter.state_traits();
     for (path, source) in files {
         if let Some(stem) = member(path, "nodes") {
             linter.node(path, stem, source);
@@ -484,6 +569,89 @@ mod tests {
             at("src/walks/counter.rs", 1, "walk-runner")
         );
         assert_eq!(rules(&files)[1], at("src/walks/counter.rs", 1, "walk-spec"));
+    }
+
+    /// Appends `source` to the file at `path`, returning the line it starts on.
+    fn append(files: &mut BTreeMap<String, String>, path: &str, source: &str) -> usize {
+        let file = files.get_mut(path).unwrap();
+        let line = file.lines().count() + 1;
+        file.push_str(source);
+        line
+    }
+
+    #[test]
+    fn a_state_trait_may_be_read_only_or_have_a_mut_accessor() {
+        let mut files = example();
+        append(
+            &mut files,
+            REGISTRY,
+            "\npub trait HasLimit {\n    fn limit(&self) -> u32;\n}\n\
+             \npub trait HasLastName {\n    fn last_name(&self) -> &str;\n    fn last_name_mut(&mut self) -> &mut String;\n}\n",
+        );
+
+        assert_eq!(lint(&files), []);
+    }
+
+    #[test]
+    fn a_state_trait_covers_one_field() {
+        let mut files = example();
+        let line = append(
+            &mut files,
+            REGISTRY,
+            "\npub trait HasServer {\n    fn host(&self) -> &str;\n    fn port(&self) -> u16;\n}\n",
+        ) + 1;
+
+        assert_eq!(
+            rules(&files),
+            [
+                at(REGISTRY, line, "state-traits"),
+                at(REGISTRY, line + 1, "state-traits"),
+                at(REGISTRY, line + 2, "state-traits"),
+            ]
+        );
+        let messages: Vec<String> = lint(&files).iter().map(ToString::to_string).collect();
+        assert!(messages[0].contains("needs a getter, `fn server(&self)`"));
+        assert!(messages[1].contains("not `fn host`"));
+    }
+
+    #[test]
+    fn a_state_trait_has_no_other_methods() {
+        let mut files = example();
+        let line = append(
+            &mut files,
+            REGISTRY,
+            "\npub trait HasName {\n    fn name(&self) -> &str;\n    fn name_mut(&mut self) -> &mut String;\n    fn rename(&mut self, to: &str);\n}\n",
+        ) + 1;
+
+        let violations = lint(&files);
+        assert_eq!(violations.len(), 1);
+        assert_eq!(
+            violations[0].to_string(),
+            format!(
+                "{REGISTRY}:{}: state-traits: `HasName` covers one field: `name` and optionally `name_mut`, not `fn rename`",
+                line + 3
+            )
+        );
+    }
+
+    #[test]
+    fn state_traits_are_declared_only_in_the_registry() {
+        let mut files = example();
+        let line = append(
+            &mut files,
+            "src/nodes/stop.rs",
+            "\npub trait HasLimit {\n    fn limit(&self) -> u32;\n}\n",
+        ) + 1;
+        append(
+            &mut files,
+            "src/nodes/start.rs",
+            "\npub trait Hash {\n    fn hash(&self) -> u64;\n}\n",
+        );
+
+        assert_eq!(
+            rules(&files),
+            [at("src/nodes/stop.rs", line, "state-traits")]
+        );
     }
 
     #[test]

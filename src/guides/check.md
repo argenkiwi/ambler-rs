@@ -24,6 +24,7 @@ If there are none, it runs `cargo fmt --check`, `cargo clippy --all-targets -- -
 - `walk-spec`: the walk has `specs/<walk>.md`.
 - `spec-nodes`: the spec's `###` headings are exactly the walk's `Id` variants.
 - `spec-sections`: a spec has `# Program Specifications`, `## Nodes` and `## Shared State`, and no other sections.
+- `state-traits`: `Has*` traits are declared only in `src/nodes/mod.rs`, and `Has<Field>` has only `fn <field>(&self)` and, optionally, `fn <field>_mut(&mut self)`.
 - `util-imports`: a utility imports nothing from `crate::nodes`, `crate::walks` or the engine.
 
 What it cannot check is yours: that outcomes name what happened, that tests cover every branch, that the spec's prose matches the code. See `cargo ambler help node-design`, `cargo ambler help testing` and `cargo ambler help spec`.

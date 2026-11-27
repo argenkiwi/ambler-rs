@@ -24,7 +24,7 @@ A node does one thing a spec can describe in a sentence or two. If the descripti
 
 ## State
 
-- A node asks for state through `Has*` traits in `src/nodes/mod.rs`: `HasCount` has `count()` and `count_mut()`.
+- A node asks for state through `Has*` traits in `src/nodes/mod.rs`, and only there. One trait per field: `HasCount` has `count()` and `count_mut()`. The `_mut` accessor is optional, so a field nodes only read gets a read-only trait. No grouped traits and no behaviour methods: compose several traits as bounds instead (`S: HasCount + HasLimit + Send`), and put the logic in the node.
 - Require only the traits the node touches. Reuse an existing trait before declaring a new one.
 - Read and write through the accessors only.
 

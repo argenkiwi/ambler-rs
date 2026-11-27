@@ -10,7 +10,7 @@ Every convention of an Ambler project, with why it is there. `cargo ambler check
 - Utils are a generic parameter with a default, `Start<U = SystemUtils>`, not a boxed trait object: no allocation, and the mock is a plain type.
 - `new()` is implemented on the defaulted type (`impl Start`), `with_utils()` on the generic one (`impl<U> Start<U>`). Default type parameters do not apply in expressions, so `Start::new()` only resolves this way.
 - Bounds are `S: HasX + Send` and `U: Utils + Sync`, which keeps `run` a `Send` future.
-- State is reached through `Has*` traits declared in `src/nodes/mod.rs`, with a getter and a `_mut` accessor.
+- State is reached through `Has*` traits declared only in `src/nodes/mod.rs`, the state registry. Each covers one field: `HasLastName` has the getter `last_name()` and, if nodes write it, `last_name_mut()`; a read-only trait has no `_mut`. Nothing else goes in it, so a walk's `State` implements each trait with one line per accessor and holds only the fields its nodes use.
 
 ## Walks
 
